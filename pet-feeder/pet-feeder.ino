@@ -13,6 +13,7 @@
 #define TO_PROXIMITY 3000 // Timeout para volver a escanear por proximidad
 #define TO_POT 30000      // 30 seg para detectar que no hay mas alimento
 #define CANT_EVENTOS 8
+#define CANT_ESTADOS 7
 
 /**ESTADOS**/
 #define ESTADO_ESPERA 1000
@@ -40,8 +41,22 @@ struct Evento
 {
   bool condicion;
   int evento;
+  char nombre[50];
 };
-
+struct Estado
+{
+  int estado;
+  char nombre[50];
+};
+struct Estado estados[CANT_ESTADOS] = {
+    {ESTADO_ESPERA, "ESTADO_ESPERA"},
+    {ESTADO_DETECTA_PRESENCIA, "ESTADO_DETECTA_PRESENCIA"},
+    {ESTADO_DETECTA_RFID, "ESTADO_DETECTA_RFID"},
+    {ESTADO_RENOVAR_COMIDA, "ESTADO_RENOVAR_COMIDA"},
+    {ESTADO_SERVIR_COMIDA, "ESTADO_SERVIR_COMIDA"},
+    {ESTADO_PEDIR_RECARGA, "ESTADO_PEDIR_RECARGA"},
+    {ESTADO_FINALIZADO, "ESTADO_FINALIZADO"},
+};
 int estado_actual, estado_anterior, evento_actual, potValue, indexEvento;
 float duration_us, distance_cm;
 bool alimentoSuficiente, proximidadDetectada, proximidadAnterior, esHoraComida, dispenserVacio;
@@ -210,16 +225,16 @@ void generaEvento()
   // TODO EVENTO_FINALIZADO, EVENTO_DETECTA_RFID y EVENTO_RFID_LEIDO
   check_weight();
   check_proximity();
-  // DECLARO CONDICIONES PARA GENERAR EVENTOS Y SE CHECKEAN DE A UNA POR POLLING 
+  // DECLARO CONDICIONES PARA GENERAR EVENTOS Y SE CHECKEAN DE A UNA POR POLLING
   struct Evento eventos[CANT_EVENTOS] = {
-      {!proximidadAnterior && proximidadDetectada, EVENTO_PRESENCIA_ON},
-      {proximidadAnterior && !proximidadDetectada, EVENTO_PRESENCIA_OFF},
-      {prevPotValue == potValue && potValue == POT_MAX, EVENTO_RENOVAR_COMIDA},
-      {!potValue, EVENTO_COMIDA_RENOVADA},
-      {!alimentoSuficiente && esHoraComida, EVENTO_HORA_COMIDA},
-      {dispenserVacio, EVENTO_SIN_COMIDA},
-      {!dispenserVacio, EVENTO_RECARGA_COMIDA},
-      {alimentoSuficiente, EVENTO_COMIDA_SERVIDA}};
+      {!proximidadAnterior && proximidadDetectada, EVENTO_PRESENCIA_ON, "EVENTO_PRESENCIA_ON"},
+      {proximidadAnterior && !proximidadDetectada, EVENTO_PRESENCIA_OFF, "EVENTO_PRESENCIA_OFF"},
+      {prevPotValue == potValue && potValue == POT_MAX, EVENTO_RENOVAR_COMIDA, "EVENTO_RENOVAR_COMIDA"},
+      {!potValue, EVENTO_COMIDA_RENOVADA, "EVENTO_COMIDA_RENOVADA"},
+      {!alimentoSuficiente && esHoraComida, EVENTO_HORA_COMIDA, "EVENTO_HORA_COMIDA"},
+      {dispenserVacio, EVENTO_SIN_COMIDA, "EVENTO_SIN_COMIDA"},
+      {!dispenserVacio, EVENTO_RECARGA_COMIDA, "EVENTO_RECARGA_COMIDA"},
+      {alimentoSuficiente, EVENTO_COMIDA_SERVIDA, "EVENTO_COMIDA_SERVIDA"}};
   evento_poll = eventos[indexEvento];
   indexEvento = (++indexEvento) % (CANT_EVENTOS);
   if (evento_poll.condicion)
@@ -299,7 +314,7 @@ void door_control()
 }
 void buzzer_control()
 {
-  tone(BUZZER_PIN,420,2000);
+  tone(BUZZER_PIN, 420, 2000);
 }
 void logFSM()
 {
@@ -307,13 +322,19 @@ void logFSM()
   {
     Serial.println("---------");
     Serial.print("Estado Anterior: ");
-    Serial.print(estado_anterior);
-    Serial.print(" Checkeando Evento: ");
-    Serial.print(evento_poll.evento);
+    Serial.print(getEstado(estado_anterior));
     Serial.print(" Evento Actual: ");
-    Serial.print(evento_actual);
+    Serial.print(evento_poll.nombre);
     Serial.print(" Estado Actual: ");
-    Serial.println(estado_actual);
+    Serial.println(getEstado(estado_actual));
     Serial.println("---------");
   }
+}
+char* getEstado(int estado) {
+    for (int i=0; i < CANT_ESTADOS; i++)
+    {
+      if(estados[i].estado == estado)
+        return estados[i].nombre;
+    }
+    return "";
 }
