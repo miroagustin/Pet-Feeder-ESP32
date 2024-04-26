@@ -1,5 +1,6 @@
 #include <ESP32Servo.h>
 
+#define BUZZER_PIN 21
 #define TRIG_PIN 12 // ESP32 pin connected to Ultrasonic Sensor's TRIG pin
 #define ECHO_PIN 13 // ESP32 pin connected to Ultrasonic Sensor's ECHO pin
 #define SERVO_PIN 14
@@ -10,8 +11,8 @@
 #define POS_MAX 180
 #define PROX_MAX_CM 50.0
 #define TO_PROXIMITY 3000 // Timeout para volver a escanear por proximidad
-#define TO_POT 10000      // 10 seg para detectar que no hay mas alimento
-#define CANT_ACCIONES 8
+#define TO_POT 30000      // 30 seg para detectar que no hay mas alimento
+#define CANT_EVENTOS 8
 
 /**ESTADOS**/
 #define ESTADO_ESPERA 1000
@@ -60,6 +61,7 @@ void setup()
   pinMode(TRIG_PIN, OUTPUT);
   // configure the echo pin to input mode
   pinMode(ECHO_PIN, INPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
   myServo.attach(SERVO_PIN);
   currentTime = millis();
   lastPotTime = currentTime;
@@ -161,6 +163,7 @@ void fsm()
     {
       // TODO ACCION
       door_control();
+      buzzer_control();
       estado_actual = ESTADO_ESPERA;
     }
     break;
@@ -211,7 +214,7 @@ void generaEvento()
   struct Evento eventos[CANT_EVENTOS] = {
       {!proximidadAnterior && proximidadDetectada, EVENTO_PRESENCIA_ON},
       {proximidadAnterior && !proximidadDetectada, EVENTO_PRESENCIA_OFF},
-      {prevPotValue == potValue && alimentoSuficiente, EVENTO_RENOVAR_COMIDA},
+      {prevPotValue == potValue && potValue == POT_MAX, EVENTO_RENOVAR_COMIDA},
       {!potValue, EVENTO_COMIDA_RENOVADA},
       {!alimentoSuficiente && esHoraComida, EVENTO_HORA_COMIDA},
       {dispenserVacio, EVENTO_SIN_COMIDA},
@@ -294,10 +297,13 @@ void door_control()
     myServo.write(POS_MIN);
   }
 }
-
+void buzzer_control()
+{
+  tone(BUZZER_PIN,420,2000);
+}
 void logFSM()
 {
-  if (estado_anterior != estado_actual || evento_poll.condicion)
+  if (estado_anterior != estado_actual)
   {
     Serial.println("---------");
     Serial.print("Estado Anterior: ");
