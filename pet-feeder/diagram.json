@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "author": "GRUPO L6",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-breadboard", "id": "bb1", "top": -60.6, "left": -179.6, "attrs": {} },
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": -67.2, "left": 513.64, "attrs": {} },
+    {
+      "type": "wokwi-hc-sr04",
+      "id": "ultrasonic1",
+      "top": -248.1,
+      "left": 168.7,
+      "attrs": { "distance": "253" }
+    },
+    { "type": "wokwi-vcc", "id": "vcc1", "top": -95.24, "left": -230.4, "attrs": {} },
+    { "type": "wokwi-gnd", "id": "gnd1", "top": -38.4, "left": -231, "attrs": {} },
+    { "type": "wokwi-potentiometer", "id": "pot1", "top": -154.9, "left": 105.4, "attrs": {} },
+    { "type": "wokwi-servo", "id": "servo1", "top": -232.4, "left": -67.2, "attrs": {} },
+    {
+      "type": "wokwi-buzzer",
+      "id": "bz1",
+      "top": -189.6,
+      "left": 357,
+      "attrs": { "volume": "0.1" }
+    }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+    [ "ultrasonic1:VCC", "bb1:tp.34", "red", [ "v0" ] ],
+    [ "ultrasonic1:GND", "bb1:tn.36", "black", [ "v0" ] ],
+    [ "esp:GND.1", "bb1:tn.49", "black", [ "h-28.65", "v-19.1" ] ],
+    [ "ultrasonic1:TRIG", "bb1:63t.a", "green", [ "v134.4", "h191.6" ] ],
+    [ "ultrasonic1:ECHO", "bb1:62t.a", "gold", [ "v124.8", "h172" ] ],
+    [ "esp:12", "bb1:63t.b", "green", [ "h-28.65", "v28.8" ] ],
+    [ "bb1:62t.d", "esp:13", "gold", [ "v0" ] ],
+    [ "gnd1:GND", "bb1:tn.1", "black", [ "v0" ] ],
+    [ "vcc1:VCC", "bb1:tp.1", "red", [ "v0" ] ],
+    [ "servo1:V+", "bb1:tp.6", "red", [ "h0" ] ],
+    [ "servo1:GND", "bb1:tn.5", "black", [ "h-19.2", "v144" ] ],
+    [ "pot1:GND", "bb1:tn.25", "black", [ "v0" ] ],
+    [ "pot1:VCC", "bb1:tp.26", "red", [ "v0" ] ],
+    [ "pot1:SIG", "bb1:42t.a", "green", [ "v57.6", "h-0.4" ] ],
+    [ "bb1:42t.b", "esp:27", "green", [ "h115.2", "v-48", "h144", "v28.8" ] ],
+    [ "servo1:PWM", "bb1:22t.b", "green", [ "h0", "v144.2", "h134.4" ] ],
+    [ "esp:14", "bb1:22t.a", "green", [ "h0" ] ],
+    [ "bz1:1", "bb1:tn.46", "black", [ "v0" ] ],
+    [ "bz1:2", "bb1:58t.a", "green", [ "v0" ] ],
+    [ "bb1:58t.c", "esp:21", "green", [ "v0" ] ]
+  ],
+  "dependencies": {}
+}
