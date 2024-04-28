@@ -16,7 +16,7 @@
 #define TO_PROXIMITY 3000 // Timeout para volver a escanear por proximidad
 #define TO_POT 30000      // 30 seg para detectar que no hay mas alimento
 #define CANT_EVENTOS 10
-#define CANT_ESTADOS 7
+#define CANT_ESTADOS 6
 
 /**ESTADOS**/
 #define ESTADO_ESPERA 1000
@@ -25,7 +25,6 @@
 #define ESTADO_RENOVAR_COMIDA 1003
 #define ESTADO_SERVIR_COMIDA 1004
 #define ESTADO_PEDIR_RECARGA 1005
-#define ESTADO_FINALIZADO 1006
 
 /**EVENTOS**/
 #define EVENTO_PRESENCIA_ON 2000
@@ -36,7 +35,6 @@
 #define EVENTO_COMIDA_RENOVADA 2005 // SI PESO = 0
 #define EVENTO_HORA_COMIDA 2006     // SI HORA DE COMIDA Y PESO < UMBRAL
 #define EVENTO_COMIDA_SERVIDA 2007
-#define EVENTO_FINALIZADO 2008
 #define EVENTO_SIN_COMIDA 2009
 #define EVENTO_RECARGA_COMIDA 2010
 
@@ -58,7 +56,6 @@ struct Estado estados[CANT_ESTADOS] = {
     {ESTADO_RENOVAR_COMIDA, "ESTADO_RENOVAR_COMIDA"},
     {ESTADO_SERVIR_COMIDA, "ESTADO_SERVIR_COMIDA"},
     {ESTADO_PEDIR_RECARGA, "ESTADO_PEDIR_RECARGA"},
-    {ESTADO_FINALIZADO, "ESTADO_FINALIZADO"},
 };
 int estado_actual, estado_anterior, evento_actual, potValue, indexEvento;
 float duration_us, distance_cm;
@@ -212,25 +209,11 @@ void fsm()
     }
   }
   break;
-  case ESTADO_FINALIZADO:
-  {
-    switch (evento_actual)
-    {
-    case EVENTO_FINALIZADO:
-    {
-      // TODO ACCION
-      estado_actual = ESTADO_ESPERA;
-    }
-    break;
-    }
-  }
-  break;
   }
   logFSM();
 }
 void generaEvento()
 {
-  // TODO EVENTO_FINALIZADO, EVENTO_DETECTA_RFID y EVENTO_RFID_LEIDO
   check_weight();
   check_proximity();
   leerComando();
