@@ -1,5 +1,6 @@
 #include <ESP32Servo.h>
 
+#define BUTTON_PIN 32
 #define BUZZER_PIN 21
 #define TRIG_PIN 12 // ESP32 pin connected to Ultrasonic Sensor's TRIG pin
 #define ECHO_PIN 13 // ESP32 pin connected to Ultrasonic Sensor's ECHO pin
@@ -10,9 +11,11 @@
 #define POS_MIN 0
 #define POS_MAX 180
 #define PROX_MAX_CM 50.0
+#define TONO_COMIDA_SERVIDA 420
+#define TONO_PEDIR_RECARGA 630
 #define TO_PROXIMITY 3000 // Timeout para volver a escanear por proximidad
 #define TO_POT 30000      // 30 seg para detectar que no hay mas alimento
-#define CANT_EVENTOS 8
+#define CANT_EVENTOS 10
 #define CANT_ESTADOS 7
 
 /**ESTADOS**/
@@ -59,7 +62,7 @@ struct Estado estados[CANT_ESTADOS] = {
 };
 int estado_actual, estado_anterior, evento_actual, potValue, indexEvento;
 float duration_us, distance_cm;
-bool alimentoSuficiente, proximidadDetectada, proximidadAnterior, esHoraComida, dispenserVacio;
+bool alimentoSuficiente, proximidadDetectada, proximidadAnterior, esHoraComida, dispenserVacio, RFID_detectado, RFID_leido;
 unsigned long currentTime, lastProximityTime, lastPotTime;
 unsigned int umbralAlimentoMax = POT_MAX / 3;
 unsigned int prevPotValue = POT_MAX;
@@ -77,13 +80,13 @@ void setup()
   // configure the echo pin to input mode
   pinMode(ECHO_PIN, INPUT);
   pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
   myServo.attach(SERVO_PIN);
   currentTime = millis();
   lastPotTime = currentTime;
   // setea el valor inicial para que de timeout
   lastProximityTime = currentTime - TO_PROXIMITY - 1;
-  // HARDCODE HORARIO DE COMER PERMANENTE
-  esHoraComida = true;
+  logFSM();
 }
 
 void loop()
@@ -138,6 +141,7 @@ void fsm()
     case EVENTO_DETECTA_RFID:
     {
       // TODO ACCION
+      leer_RFID();
       estado_actual = ESTADO_DETECTA_RFID;
     }
     break;
@@ -151,6 +155,8 @@ void fsm()
     case EVENTO_RFID_LEIDO:
     {
       // TODO ACCION
+      RFID_leido = false;
+      Serial.println("Se leyo el RFID 1A2B3C4D5E6F7A de prueba.");
       estado_actual = ESTADO_DETECTA_PRESENCIA;
     }
     break;
@@ -176,15 +182,17 @@ void fsm()
     {
     case EVENTO_COMIDA_SERVIDA:
     {
-      // TODO ACCION
+      // Cierro la puerta, prendo el buzzer y dejo de estar en horario comida
+      esHoraComida = false;
+      buzzer_control(TONO_COMIDA_SERVIDA);
       door_control();
-      buzzer_control();
       estado_actual = ESTADO_ESPERA;
     }
     break;
     case EVENTO_SIN_COMIDA:
     {
       // TODO ACCION
+      buzzer_control(TONO_PEDIR_RECARGA);
       estado_actual = ESTADO_PEDIR_RECARGA;
     }
     break;
@@ -225,11 +233,15 @@ void generaEvento()
   // TODO EVENTO_FINALIZADO, EVENTO_DETECTA_RFID y EVENTO_RFID_LEIDO
   check_weight();
   check_proximity();
+  leerComando();
+  check_RFID();
   // DECLARO CONDICIONES PARA GENERAR EVENTOS Y SE CHECKEAN DE A UNA POR POLLING
   struct Evento eventos[CANT_EVENTOS] = {
+      {RFID_detectado, EVENTO_DETECTA_RFID, "EVENTO_DETECTA_RFID"},
+      {RFID_leido, EVENTO_RFID_LEIDO, "EVENTO_RFID_LEIDO"},
       {!proximidadAnterior && proximidadDetectada, EVENTO_PRESENCIA_ON, "EVENTO_PRESENCIA_ON"},
       {proximidadAnterior && !proximidadDetectada, EVENTO_PRESENCIA_OFF, "EVENTO_PRESENCIA_OFF"},
-      {prevPotValue == potValue && potValue == POT_MAX, EVENTO_RENOVAR_COMIDA, "EVENTO_RENOVAR_COMIDA"},
+      {alimentoSuficiente && esHoraComida, EVENTO_RENOVAR_COMIDA, "EVENTO_RENOVAR_COMIDA"},
       {!potValue, EVENTO_COMIDA_RENOVADA, "EVENTO_COMIDA_RENOVADA"},
       {!alimentoSuficiente && esHoraComida, EVENTO_HORA_COMIDA, "EVENTO_HORA_COMIDA"},
       {dispenserVacio, EVENTO_SIN_COMIDA, "EVENTO_SIN_COMIDA"},
@@ -245,6 +257,8 @@ void generaEvento()
 // Funciones de manejo de sensores y actuadores
 void check_weight()
 {
+  // solo importa el timeout cuando es el momento de servir la comida
+  if (!esHoraComida) lastPotTime = currentTime;
   unsigned long timediff = currentTime - lastPotTime;
   // si no hay suficiente peso abre la compuerta
   potValue = analogRead(POT_PIN);
@@ -288,20 +302,13 @@ void check_proximity()
     distance_cm = 0.017 * duration_us;
     proximidadDetectada = distance_cm < PROX_MAX_CM;
 
-    // print the value to Serial Monitor
-    Serial.print("distance: ");
-    Serial.print(distance_cm);
-    Serial.println(" cm      ");
-    Serial.print("timestamp: ");
-    Serial.print(currentTime);
-    Serial.println(" ms      ");
     lastProximityTime = currentTime;
   }
 }
 
 void door_control()
 {
-  if (!alimentoSuficiente)
+  if (esHoraComida)
   {
     // Abrir compuerta
     myServo.write(POS_MAX / 3);
@@ -312,16 +319,18 @@ void door_control()
     myServo.write(POS_MIN);
   }
 }
-void buzzer_control()
+void buzzer_control(int tono)
 {
-  tone(BUZZER_PIN, 420, 2000);
+  tone(BUZZER_PIN, tono, 2000);
 }
 void logFSM()
 {
   if (estado_anterior != estado_actual)
   {
     Serial.println("---------");
-    Serial.print("Estado Anterior: ");
+    Serial.print("Distancia: ");
+    Serial.print(distance_cm);
+    Serial.print(" Estado Anterior: ");
     Serial.print(getEstado(estado_anterior));
     Serial.print(" Evento Actual: ");
     Serial.print(evento_poll.nombre);
@@ -337,4 +346,26 @@ char* getEstado(int estado) {
         return estados[i].nombre;
     }
     return "";
+}
+void leerComando() {
+  if (Serial.available() > 0) {
+    // read the incoming byte:
+    int incomingByte = Serial.read();
+    if(incomingByte == 'h' || incomingByte == 'h' )
+    {
+      esHoraComida = true;
+      Serial.print("He recibido el comando: ");
+      Serial.print(incomingByte);
+      Serial.println(". Hora de comida activada.");
+    }
+  }
+
+}
+void check_RFID() {
+  // Se simula RFID con un boton
+  RFID_detectado = digitalRead(BUTTON_PIN)== LOW;
+}
+void leer_RFID() {
+  // Logica para leer RFID
+  RFID_leido = true;
 }

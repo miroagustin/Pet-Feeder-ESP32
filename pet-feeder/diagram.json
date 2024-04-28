@@ -10,7 +10,7 @@
       "id": "ultrasonic1",
       "top": -248.1,
       "left": 168.7,
-      "attrs": { "distance": "253" }
+      "attrs": { "distance": "123" }
     },
     { "type": "wokwi-vcc", "id": "vcc1", "top": -95.24, "left": -230.4, "attrs": {} },
     { "type": "wokwi-gnd", "id": "gnd1", "top": -38.4, "left": -231, "attrs": {} },
@@ -22,6 +22,13 @@
       "top": -189.6,
       "left": 357,
       "attrs": { "volume": "0.1" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn1",
+      "top": -128.2,
+      "left": 288,
+      "attrs": { "color": "green", "bounce": "1" }
     }
   ],
   "connections": [
@@ -42,11 +49,14 @@
     [ "pot1:VCC", "bb1:tp.26", "red", [ "v0" ] ],
     [ "pot1:SIG", "bb1:42t.a", "green", [ "v57.6", "h-0.4" ] ],
     [ "bb1:42t.b", "esp:27", "green", [ "h115.2", "v-48", "h144", "v28.8" ] ],
-    [ "servo1:PWM", "bb1:22t.b", "green", [ "h0", "v144.2", "h134.4" ] ],
-    [ "esp:14", "bb1:22t.a", "green", [ "h0" ] ],
     [ "bz1:1", "bb1:tn.46", "black", [ "v0" ] ],
     [ "bz1:2", "bb1:58t.a", "green", [ "v0" ] ],
-    [ "bb1:58t.c", "esp:21", "green", [ "v0" ] ]
+    [ "bb1:58t.c", "esp:21", "green", [ "v0" ] ],
+    [ "btn1:2.r", "bb1:56t.a", "green", [ "h0" ] ],
+    [ "esp:32", "bb1:56t.d", "green", [ "h0" ] ],
+    [ "btn1:1.l", "bb1:tn.37", "black", [ "h0" ] ],
+    [ "servo1:PWM", "bb1:22t.d", "green", [ "v86.6", "h115.2" ] ],
+    [ "esp:14", "bb1:22t.e", "green", [ "h0" ] ]
   ],
   "dependencies": {}
 }
