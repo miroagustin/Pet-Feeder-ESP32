@@ -13,8 +13,9 @@
 #define PROX_MAX_CM 50.0
 #define TONO_COMIDA_SERVIDA 420
 #define TONO_PEDIR_RECARGA 630
+#define TONO_RENOVAR_COMIDA 330
 #define TO_PROXIMITY 3000 // Timeout para volver a escanear por proximidad
-#define TO_POT 30000      // 30 seg para detectar que no hay mas alimento
+#define TO_POT 10000      // 10 seg para detectar que no hay mas alimento
 #define CANT_EVENTOS 10
 #define CANT_ESTADOS 6
 
@@ -112,6 +113,7 @@ void fsm()
     case EVENTO_RENOVAR_COMIDA:
     {
       // TODO ACCION
+      buzzer_control(TONO_RENOVAR_COMIDA);
       estado_actual = ESTADO_RENOVAR_COMIDA;
     }
     break;
