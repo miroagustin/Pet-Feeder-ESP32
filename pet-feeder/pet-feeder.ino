@@ -1,6 +1,5 @@
 #include <ESP32Servo.h>
 
-int check_weight();
 int check_proximity();
 void door_control();
 void buzzer_control(int tono);
@@ -9,6 +8,9 @@ char* getEstado(int estado);
 void leerComando();
 int check_RFID();
 void leer_RFID();
+int check_renovar_comida();
+int check_servir_comida();
+int check_recargar_dispenser();
 
 #define BUTTON_PIN 32
 #define BUZZER_PIN 21
@@ -75,12 +77,12 @@ struct Estado estados[CANT_ESTADOS] = {
       {&check_RFID, EVENTO_RFID_LEIDO, "EVENTO_RFID_LEIDO"},
       {&check_proximity, EVENTO_PRESENCIA_ON, "EVENTO_PRESENCIA_ON"},
       {&check_proximity, EVENTO_PRESENCIA_OFF, "EVENTO_PRESENCIA_OFF"},
-      {&check_weight, EVENTO_RENOVAR_COMIDA, "EVENTO_RENOVAR_COMIDA"},
-      {&check_weight, EVENTO_COMIDA_RENOVADA, "EVENTO_COMIDA_RENOVADA"},
-      {&check_weight, EVENTO_HORA_COMIDA, "EVENTO_HORA_COMIDA"},
-      {&check_weight, EVENTO_SIN_COMIDA, "EVENTO_SIN_COMIDA"},
-      {&check_weight, EVENTO_RECARGA_COMIDA, "EVENTO_RECARGA_COMIDA"},
-      {&check_weight, EVENTO_COMIDA_SERVIDA, "EVENTO_COMIDA_SERVIDA"}};
+      {&check_renovar_comida, EVENTO_RENOVAR_COMIDA, "EVENTO_RENOVAR_COMIDA"},
+      {&check_renovar_comida, EVENTO_COMIDA_RENOVADA, "EVENTO_COMIDA_RENOVADA"},
+      {&check_recargar_dispenser, EVENTO_SIN_COMIDA, "EVENTO_SIN_COMIDA"},
+      {&check_recargar_dispenser, EVENTO_RECARGA_COMIDA, "EVENTO_RECARGA_COMIDA"},
+      {&check_servir_comida, EVENTO_HORA_COMIDA, "EVENTO_HORA_COMIDA"},
+      {&check_servir_comida, EVENTO_COMIDA_SERVIDA, "EVENTO_COMIDA_SERVIDA"}};
 int estado_actual, estado_anterior, evento_actual, potValue, indexEvento;
 float duration_us, distance_cm;
 bool alimentoSuficiente, proximidadDetectada, proximidadAnterior, esHoraComida, dispenserVacio, RFID_detectado, RFID_leido;
@@ -238,10 +240,6 @@ void fsm()
 }
 void generaEvento()
 {
-  check_weight();
-  check_proximity();
-  leerComando();
-  check_RFID();
   // DECLARO CONDICIONES PARA GENERAR EVENTOS Y SE CHECKEAN DE A UNA POR POLLING
 
   evento_poll = eventos[indexEvento];
@@ -252,9 +250,8 @@ void generaEvento()
   }
 }
 // Funciones de manejo de sensores y actuadores
-int check_weight()
+void check_weight()
 {
-  int eventoReturn = EVENTO_CONTINUE;
   leerComando();
   // solo importa el timeout cuando es el momento de servir la comida
   if (!esHoraComida) lastPotTime = currentTime;
@@ -280,23 +277,37 @@ int check_weight()
     dispenserVacio = true;
   }
 
-
-  if(!dispenserVacio) 
-    eventoReturn = EVENTO_RECARGA_COMIDA;
+}
+int check_servir_comida()
+{
+  check_weight();
+  int eventoReturn = EVENTO_CONTINUE;
   if(alimentoSuficiente)
     eventoReturn = EVENTO_COMIDA_SERVIDA;
-  if(alimentoSuficiente && esHoraComida)
-    eventoReturn = EVENTO_RENOVAR_COMIDA;
   if(!alimentoSuficiente && esHoraComida)
     eventoReturn = EVENTO_HORA_COMIDA;
-  if(dispenserVacio)
+      return eventoReturn;
+}
+int check_recargar_dispenser()
+{
+    check_weight();
+    int eventoReturn = EVENTO_CONTINUE;
+    if(dispenserVacio)
     eventoReturn = EVENTO_SIN_COMIDA;
+  if(!dispenserVacio) 
+    eventoReturn = EVENTO_RECARGA_COMIDA;
+      return eventoReturn;
+}
+int check_renovar_comida()
+{
+    check_weight();
+    int eventoReturn = EVENTO_CONTINUE;
   if(!potValue)
     eventoReturn = EVENTO_COMIDA_RENOVADA;
-
-  return eventoReturn;
+  if(alimentoSuficiente && esHoraComida)
+    eventoReturn = EVENTO_RENOVAR_COMIDA;
+      return eventoReturn;
 }
-
 int check_proximity()
 {
   int eventoReturn = EVENTO_CONTINUE;
@@ -340,7 +351,7 @@ void door_control()
   {
     // Cerrar compuerta
     myServo.write(POS_MIN);
-  }
+  } 
 }
 void buzzer_control(int tono)
 {
@@ -373,7 +384,8 @@ char* getEstado(int estado)
 }
 void leerComando() 
 {
-  if (Serial.available() > 0) {
+  if (Serial.available() > 0) 
+  {
     // read the incoming byte:
     int incomingByte = Serial.read();
     if(incomingByte == COMANDO_HORA_COMIDA)
@@ -395,9 +407,7 @@ int check_RFID()
     eventoReturn = EVENTO_RFID_LEIDO;
   if(RFID_detectado) 
     eventoReturn = EVENTO_DETECTA_RFID;
-  
   return eventoReturn;
-
 }
 void leer_RFID() 
 {
