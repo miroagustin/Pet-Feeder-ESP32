@@ -64,6 +64,7 @@ struct Estado
   int estado;
   char nombre[50];
 };
+// DECLARO LOS ESTADOS PARA IMPRIMIR SU NOMBRE
 struct Estado estados[CANT_ESTADOS] = {
     {ESTADO_ESPERA, "ESTADO_ESPERA"},
     {ESTADO_DETECTA_PRESENCIA, "ESTADO_DETECTA_PRESENCIA"},
@@ -72,6 +73,7 @@ struct Estado estados[CANT_ESTADOS] = {
     {ESTADO_SERVIR_COMIDA, "ESTADO_SERVIR_COMIDA"},
     {ESTADO_PEDIR_RECARGA, "ESTADO_PEDIR_RECARGA"},
 };
+// DECLARO LOS EVENTOS CON SUS ACCIONES CORRESPONDIENTES PARA REALIZAR POOLING
 struct Evento eventos[CANT_EVENTOS] = {
     {&check_RFID, EVENTO_DETECTA_RFID, "EVENTO_DETECTA_RFID"},
     {&check_RFID, EVENTO_RFID_LEIDO, "EVENTO_RFID_LEIDO"},
@@ -83,6 +85,7 @@ struct Evento eventos[CANT_EVENTOS] = {
     {&check_recargar_dispenser, EVENTO_RECARGA_COMIDA, "EVENTO_RECARGA_COMIDA"},
     {&check_servir_comida, EVENTO_HORA_COMIDA, "EVENTO_HORA_COMIDA"},
     {&check_servir_comida, EVENTO_COMIDA_SERVIDA, "EVENTO_COMIDA_SERVIDA"}};
+
 int estado_actual, estado_anterior, evento_actual, potValue, indexEvento;
 float duration_us, distance_cm;
 bool alimentoSuficiente, proximidadDetectada, proximidadAnterior, esHoraComida, dispenserVacio, RFID_detectado, RFID_leido;
@@ -115,7 +118,7 @@ void setup()
 void loop()
 {
   fsm();
-  currentTime = millis(); // this speeds up the simulation
+  currentTime = millis(); 
 }
 
 void fsm()
