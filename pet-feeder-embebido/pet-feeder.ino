@@ -22,6 +22,7 @@ int check_recargar_dispenser();
 #define POT_MAX 4095
 #define POS_MIN 0
 #define POS_MAX 180
+#define POS_APERTURA 60
 #define PROX_MAX_CM 50.0
 #define TONO_COMIDA_SERVIDA 420
 #define TONO_PEDIR_RECARGA 630
@@ -31,6 +32,10 @@ int check_recargar_dispenser();
 #define CANT_EVENTOS 10
 #define CANT_ESTADOS 6
 #define COMANDO_HORA_COMIDA 'h'
+#define TIEMPO_ACTIVACION_TRIGGER 10
+#define VALOR_TRANSFORMACION_CM_MS 0.017
+#define TIEMPO_BUZZER 2000
+#define FRECUENCIA_SERIAL 115200
 
 /**ESTADOS**/
 #define ESTADO_ESPERA 1000
@@ -99,7 +104,7 @@ Servo myServo;
 void setup()
 {
   // put your setup code here, to run once:
-  Serial.begin(115200);
+  Serial.begin(FRECUENCIA_SERIAL);
   estado_actual = ESTADO_ESPERA;
   // configure the trigger pin to output mode
   pinMode(TRIG_PIN, OUTPUT);
@@ -279,6 +284,8 @@ void check_weight()
   {
     dispenserVacio = true;
   }
+
+  
 }
 int check_servir_comida()
 {
@@ -321,14 +328,14 @@ int check_proximity()
 
     // generate 10-microsecond pulse to TRIG pin
     digitalWrite(TRIG_PIN, HIGH);
-    delayMicroseconds(10);
+    delayMicroseconds(TIEMPO_ACTIVACION_TRIGGER);
     digitalWrite(TRIG_PIN, LOW);
 
     // measure duration of pulse from ECHO pin
     duration_us = pulseIn(ECHO_PIN, HIGH);
 
     // calculate the distance
-    distance_cm = 0.017 * duration_us;
+    distance_cm = VALOR_TRANSFORMACION_CM_MS * duration_us;
     proximidadDetectada = distance_cm < PROX_MAX_CM;
 
     lastProximityTime = currentTime;
@@ -346,7 +353,7 @@ void door_control()
   if (esHoraComida)
   {
     // Abrir compuerta
-    myServo.write(POS_MAX / 3);
+    myServo.write(POS_APERTURA);
   }
   else
   {
@@ -356,7 +363,7 @@ void door_control()
 }
 void buzzer_control(int tono)
 {
-  tone(BUZZER_PIN, tono, 2000);
+  tone(BUZZER_PIN, tono, TIEMPO_BUZZER);
 }
 void logFSM()
 {
