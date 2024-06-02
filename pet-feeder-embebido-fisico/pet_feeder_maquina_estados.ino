@@ -7,7 +7,6 @@
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h>
-#include <driver/ledc.h>
 
 int check_proximity();
 void buzzer_control();
@@ -22,11 +21,14 @@ int check_recargar_dispenser();
 
 /* PINES */
 #define BUZZER_PIN 25
+#define SERVO_PIN 32
+// Sensor proximidad
 #define TRIG_PIN 18 // ESP32 pin connected to Ultrasonic Sensor's TRIG pin
 #define ECHO_PIN 5 // ESP32 pin connected to Ultrasonic Sensor's ECHO pin
-#define SERVO_PIN 32
+// Balanza
 #define DT_PIN 23			// DT de HX711 a pin digital 2
 #define SCK_PIN 22			// SCK de HX711 a pin digital 3
+// RFID
 #define SS_PIN 13
 #define SCK_RFID_PIN 12
 #define MOSI_PIN 14
@@ -34,27 +36,31 @@ int check_recargar_dispenser();
 #define RST_PIN 26
 
 /* CONSTANTES */
+#define FRECUENCIA_SERIAL 115200
+#define VTASK_SLEEP_TIME 250
+#define COMANDO_HORA_COMIDA 'h'
+// Balanza
 #define POT_MIN 0
 #define POT_MAX 4095
+#define TO_POT 10000      // 10 seg para detectar que no hay mas alimento
+#define UMBRAL_DIFERENCIA_DE_PESO 5
+#define ESCALA_BALANZA 460.16f
+// Servo
+#define SERVO_TIMER 3
 #define POS_MIN 0
 #define POS_MAX 180
 #define POS_APERTURA 60
-#define PROX_MAX_CM 30.0
-#define TO_PROXIMITY 2000 // Timeout para volver a escanear por proximidad
-#define TO_POT 10000      // 10 seg para detectar que no hay mas alimento
-#define CANT_EVENTOS 10
-#define CANT_ESTADOS 6
-#define COMANDO_HORA_COMIDA 'h'
+// Sensor Distancia
 #define TIEMPO_ACTIVACION_TRIGGER 10
+#define PROX_MAX_CM 30.0
 #define VALOR_TRANSFORMACION_CM_MS 0.017
+#define TO_PROXIMITY 2000  // Timeout para volver a escanear por proximidad
+// BUZZER
 #define TIEMPO_BUZZER 2000
-#define FRECUENCIA_SERIAL 115200
-#define UMBRAL_DIFERENCIA_DE_PESO 5
-#define ESCALA_BALANZA 460.16f
-#define SERVO_TIMER 3
-#define VTASK_SLEEP_TIME 250
+// Wifi
 #define WIFI_SSID "CLAROAM"
 #define WIFI_PASS "553CEB62"
+// MQTT
 #define MQTT_PORT 8883
 #define MQTT_SERVER "y8ad1cae.ala.us-east-1.emqxsl.com"
 #define MQTT_USER "PET_FEEDER_L6"
@@ -63,6 +69,7 @@ int check_recargar_dispenser();
 #define MQTT_TOPICO_ESTADO "/pet-feeder/estado"
 
 /**ESTADOS**/
+#define CANT_ESTADOS 6
 #define ESTADO_ESPERA 1000
 #define ESTADO_DETECTA_PRESENCIA 1001
 #define ESTADO_DETECTA_RFID 1002
@@ -71,6 +78,7 @@ int check_recargar_dispenser();
 #define ESTADO_PEDIR_RECARGA 1005
 
 /**EVENTOS**/
+#define CANT_EVENTOS 10
 #define EVENTO_PRESENCIA_ON 2000
 #define EVENTO_PRESENCIA_OFF 2001
 #define EVENTO_DETECTA_RFID 2002
@@ -170,7 +178,6 @@ void setup()
   client.setCallback(callback);
   // Configurar la conexión segura SSL/TLS
   espClient.setCACert(root_ca); // Debes proporcionar el certificado raíz del servidor MQTT
-
   // Intentar conectar al servidor MQTT
   reconnect();
   estado_actual = ESTADO_ESPERA;
@@ -183,11 +190,11 @@ void setup()
   celda.begin(DT_PIN, SCK_PIN);		// inicializa objeto con los pines a utilizar
   celda.set_scale(ESCALA_BALANZA);	// establece el factor de escala obtenido del programa de calibracion
   celda.tare();	
-  SPI.begin(SCK_RFID_PIN,MISO_PIN,MOSI_PIN);          // Iniciar SPI bus
+  SPI.begin(SCK_RFID_PIN,MISO_PIN,MOSI_PIN); // Iniciar SPI bus
   mfrc522.PCD_Init();
   // Asignar un temporizador específico al servo
   ESP32PWM::allocateTimer(SERVO_TIMER); // Asigna TIMER3
-  myServo.attach(SERVO_PIN); // Attach con ancho de pulso de 500 a 2500 us
+  myServo.attach(SERVO_PIN);
   currentTime = millis();
   lastPotTime = currentTime;
   // setea el valor inicial para que de timeout
@@ -196,7 +203,6 @@ void setup()
   logFSM();
   close_door();
 }
-
 void loop()
 {
   if (!client.connected()) 
@@ -207,7 +213,6 @@ void loop()
   fsm();
   currentTime = millis(); 
 }
-
 void fsm()
 {
   estado_anterior = estado_actual;
@@ -343,21 +348,22 @@ void check_weight()
   if (!esHoraComida)
     lastPotTime = currentTime;
   unsigned long timediff = currentTime - lastPotTime;
-  int diferenciaPeso = (prevPotValue - potValue);
-  // si no hay suficiente peso abre la compuerta
+  // guardamos la variable compartida para evitar lecturas sucias en la ejecucion de la funcion
+  int pesoActual = potValue;
+  int diferenciaPeso = (prevPotValue - pesoActual);
 
   // Checkeo que haya cambiado el valor anterior leido
   if (abs(diferenciaPeso) > UMBRAL_DIFERENCIA_DE_PESO)
   {
-    alimentoSuficiente = potValue > umbralAlimentoMax;
-    Serial.print(potValue);
+    alimentoSuficiente = pesoActual > umbralAlimentoMax;
+    Serial.print(pesoActual);
     Serial.println(" gr      ");
     // La compuerta permanece abierta mientras el peso actual sea menor al alimento deseado
     if (!alimentoSuficiente)
     {
       dispenserVacio = false;
     }
-    prevPotValue = potValue;
+    prevPotValue = pesoActual;
     lastPotTime = currentTime;
   }
   else if (timediff > TO_POT) // si supero el timeout con el mismo peso significa que no hay mas alimento
@@ -425,8 +431,6 @@ int check_proximity()
 
   return eventoReturn;
 }
-
-
 void open_door()
 {
     // Abrir compuerta
@@ -440,7 +444,7 @@ void close_door()
 void buzzer_control()
 {
     digitalWrite(BUZZER_PIN, HIGH);
-    vTaskDelay(1000 / portTICK_PERIOD_MS);  // Esperar 1 segundo
+    vTaskDelay(TIEMPO_BUZZER / portTICK_PERIOD_MS);  // Esperar 1 segundo
     digitalWrite(BUZZER_PIN, LOW);
 }
 void logFSM()
@@ -571,7 +575,6 @@ void callback(char* topic, byte* payload, unsigned int length)
 
     Serial.println();
 }
-
 void reconnect()
 {
     if (!client.connected()) 
