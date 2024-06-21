@@ -7,6 +7,7 @@
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h>
+#include <time.h>
 
 int check_proximity();
 void buzzer_control();
@@ -39,12 +40,15 @@ int check_recargar_dispenser();
 #define FRECUENCIA_SERIAL 115200
 #define VTASK_SLEEP_TIME 250
 #define COMANDO_HORA_COMIDA 'h'
+#define NTP_SERVER "pool.ntp.org"
+#define GMT_OFFSET_SEC -10800
+#define DAYLIGHT_OFFSET 0
 // Balanza
 #define POT_MIN 0
 #define POT_MAX 4095
 #define TO_POT 10000      // 10 seg para detectar que no hay mas alimento
 #define UMBRAL_DIFERENCIA_DE_PESO 5
-#define ESCALA_BALANZA 460.16f
+#define ESCALA_BALANZA 400.27f
 // Servo
 #define SERVO_TIMER 3
 #define POS_MIN 0
@@ -56,10 +60,10 @@ int check_recargar_dispenser();
 #define VALOR_TRANSFORMACION_CM_MS 0.017
 #define TO_PROXIMITY 2000  // Timeout para volver a escanear por proximidad
 // BUZZER
-#define TIEMPO_BUZZER 2000
+#define TIEMPO_BUZZER 1000
 // Wifi
-#define WIFI_SSID "CLAROAM"
-#define WIFI_PASS "553CEB62"
+#define WIFI_SSID ""
+#define WIFI_PASS ""
 // MQTT
 #define MQTT_PORT 8883
 #define MQTT_SERVER "y8ad1cae.ala.us-east-1.emqxsl.com"
@@ -202,7 +206,10 @@ void setup()
   launchWeightReadTask();
   logFSM();
   close_door();
+  configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET, NTP_SERVER);
+  printLocalTime();
 }
+
 void loop()
 {
   if (!client.connected()) 
@@ -213,6 +220,7 @@ void loop()
   fsm();
   currentTime = millis(); 
 }
+
 void fsm()
 {
   estado_anterior = estado_actual;
@@ -431,6 +439,8 @@ int check_proximity()
 
   return eventoReturn;
 }
+
+
 void open_door()
 {
     // Abrir compuerta
@@ -514,7 +524,7 @@ void leer_RFID()
   // Logica para leer RFID
   RFID_leido = true;
 }
-void launchWeightReadTask()
+void launchWeightReadTask() //FreeRTOS
 {
       xTaskCreatePinnedToCore(
         get_units_task,      // Función de la tarea
@@ -526,7 +536,7 @@ void launchWeightReadTask()
         1                    // Núcleo donde se ejecutará la tarea (0 = primer núcleo, 1 = segundo núcleo)
     );
 }
-void launchBuzzerTask() 
+void launchBuzzerTask() //FreeRTOS
 {
       xTaskCreatePinnedToCore(
           buzzerTask,    // Función de la tarea
@@ -575,6 +585,7 @@ void callback(char* topic, byte* payload, unsigned int length)
 
     Serial.println();
 }
+
 void reconnect()
 {
     if (!client.connected()) 
@@ -591,4 +602,12 @@ void reconnect()
             Serial.println(client.state());
         }
     }
+}
+void printLocalTime() {
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) {
+    Serial.println("Fallo al obtener la hora");
+    return;
+  }
+  Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
 }
