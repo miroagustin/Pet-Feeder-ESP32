@@ -463,12 +463,13 @@ void logFSM()
   {
     // Construir la cadena de caracteres con toda la información
     String mensaje = "Distancia: " + String(distance_cm) + " Peso: " + String(potValue) + " Estado Anterior: " + getEstado(estado_anterior) + " Evento Actual: " + evento_poll.nombre + " Estado Actual: " + getEstado(estado_actual);
+    String mensajeMQTT = String(distance_cm) + ";" + String(potValue) + ";" + getEstado(estado_anterior) + ";" + evento_poll.nombre + ";" + getEstado(estado_actual);
     Serial.println("---------");
     Serial.println(mensaje.c_str());
     Serial.println("---------");
 
     // Publicar al tópico /pet-feeder/estado
-    client.publish(MQTT_TOPICO_ESTADO, mensaje.c_str());
+    client.publish(MQTT_TOPICO_ESTADO, mensajeMQTT.c_str());
   }
 }
 char *getEstado(int estado)
