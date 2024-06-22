@@ -452,7 +452,8 @@ void logFSM()
   if (estado_anterior != estado_actual)
   {
     // Construir la cadena de caracteres con toda la información
-    String mensaje = "Distancia: " + String(distance_cm) + " Peso: " + String(potValue) + " Estado Anterior: " + getEstado(estado_anterior) + " Evento Actual: " + evento_poll.nombre + " Estado Actual: " + getEstado(estado_actual);
+    //String mensaje = "Distancia: " + String(distance_cm) + " Peso: " + String(potValue) + " Estado Anterior: " + getEstado(estado_anterior) + " Evento Actual: " + evento_poll.nombre + " Estado Actual: " + getEstado(estado_actual);
+    String mensaje = String(distance_cm) + ";" +String(potValue) + ";" + String(estado_anterior) + ";" + String(evento_poll.nombre) + ";" + String(estado_actual)
     Serial.println("---------");
     Serial.println(mensaje.c_str());
     Serial.println("---------");
