@@ -71,6 +71,7 @@ int check_recargar_dispenser();
 #define MQTT_PASSWORD "123456"
 #define MQTT_TOPICO_HORA_COMIDA "/pet-feeder/hora-comida"
 #define MQTT_TOPICO_ESTADO "/pet-feeder/estado"
+#define MQTT_TOPICO_ESTADISTICA "/pet-feeder/estadistica"
 
 /**ESTADOS**/
 #define CANT_ESTADOS 6
@@ -153,12 +154,13 @@ const char* root_ca = "-----BEGIN CERTIFICATE-----\n"
 "CAUw7C29C79Fv1C5qfPrmAESrciIxpg0X40KPMbp1ZWVbd4=\n"
 "-----END CERTIFICATE-----\n";
 
-int estado_actual, estado_anterior, evento_actual, potValue, indexEvento;
+int estado_actual, estado_anterior, evento_actual, potValue, indexEvento,cant_comida_inicio_presencia, diferencia_cant_comida;
 float duration_us, distance_cm;
 bool alimentoSuficiente, proximidadDetectada, proximidadAnterior, esHoraComida, dispenserVacio, RFID_detectado, RFID_leido;
 unsigned long currentTime, lastProximityTime, lastPotTime;
 unsigned int umbralAlimentoMax = POT_MAX / 15;
 unsigned int prevPotValue = UMBRAL_DIFERENCIA_DE_PESO;
+String RFID_key_leido
 
 Evento evento_poll;
 Servo myServo;
@@ -235,6 +237,7 @@ void fsm()
     {
       // TODO ACCION
       estado_actual = ESTADO_DETECTA_PRESENCIA;
+      cant_comida_inicio_presencia = potValue
     }
     break;
     case EVENTO_RENOVAR_COMIDA:
@@ -260,6 +263,15 @@ void fsm()
     case EVENTO_PRESENCIA_OFF:
     {
       // TODO ACCION
+      diferencia_cant_comida = cant_comida_inicio_presencia - potValue
+
+      if(diferencia_cant_comida > UMBRAL_DIFERENCIA_DE_PESO){
+        String mensaje = String(RFID_key_leido) + ";" + String(diferencia_cant_comida)
+        
+        //publica en el topico de estadistica
+        client.publish(MQTT_TOPICO_ESTADISTICA,mensaje.c_str())
+      }
+      
       estado_actual = ESTADO_ESPERA;
     }
     break;
@@ -517,6 +529,9 @@ void leer_RFID()
   for (byte i = 0; i < mfrc522.uid.size; i++) {
     Serial.print(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " ");
     Serial.print(mfrc522.uid.uidByte[i], HEX);
+    char hexString[3]; // Buffer to store hex string
+    sprintf(hexString, "%02X", mfrc522.uid.uidByte[i]);
+    RFID_key_leido += hexString
   }
   Serial.println();
 
