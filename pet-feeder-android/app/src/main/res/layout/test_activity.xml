@@ -4,9 +4,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/smooth_white"
     android:padding="16dp"
-    tools:context=".Activities.MainActivity">
+    tools:context=".Activities.MainActivity"
+    android:background="#E0E0E0">
 
     <RelativeLayout
         android:id="@+id/info_container"
@@ -85,27 +85,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:height="41dp"
             android:background="@drawable/tag_informe_desactivado"
-            android:gravity="center"
             android:paddingStart="15dp"
             android:paddingTop="10dp"
             android:paddingEnd="15dp"
             android:paddingBottom="10dp"
             android:text="Recarga Necesaria"
-            android:textAlignment="center"
             android:textColor="#FFFFFF"
             android:textSize="16sp" />
-
-        <Button
-            android:id="@+id/feed_now_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:backgroundTint="@color/purple_500"
-            android:text="ALIMENTAR AHORA"
-            android:textColor="#000"
-            app:cornerRadius="10dp" />
-
     </LinearLayout>
 
     <LinearLayout
@@ -122,18 +109,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:height="41dp"
-            android:background="@drawable/tag_informe_desactivado"
-            android:gravity="center"
+            android:background="@drawable/tag_informe"
             android:paddingStart="15dp"
             android:paddingTop="10dp"
             android:paddingEnd="15dp"
             android:paddingBottom="10dp"
             android:text="Vaciar Comida"
-            android:textAlignment="center"
             android:textColor="#FFFFFF"
             android:textSize="16sp" />
-
     </LinearLayout>
 
     <EditText
@@ -141,40 +124,33 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@id/input_time"
-        android:layout_marginTop="26dp"
-        android:backgroundTint="@color/purple_500"
+        android:layout_marginTop="16dp"
         android:hint="Ingresar cantidad"
-        android:textColorHint="@color/black"
-        android:inputType="number"
-        android:textColor="?attr/editTextColor"/>
+        android:textColorHighlight="#FF6C9536"
+        android:textColorLink="#FF6C9536"
+        android:backgroundTint="#6C9536"/>
 
     <EditText
         android:id="@+id/input_time"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@id/info_recarga"
-        android:layout_marginTop="10dp"
-        android:backgroundTint="@color/purple_500"
+        android:layout_marginTop="16dp"
         android:hint="Ingresar horario"
-        android:textColorHint="@color/black"
-        android:inputType="none"
-        android:textColor="?attr/editTextColor" />
+        android:inputType="datetime|time"
+        android:textColorHighlight="#FF6C9536"
+        android:textColorLink="#FF6C9536"
+        android:backgroundTint="#6C9536"/>
 
     <Button
         android:id="@+id/update_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@id/input_quantity"
-        android:layout_marginTop="22dp"
-        android:backgroundTint="@color/purple_500"
-        android:text="Agregar alimentacion"
+        android:layout_marginTop="16dp"
+        android:backgroundTint="#6C9536"
+        android:text="Modificar alimentacion"
         android:textColor="#000"
         app:cornerRadius="10dp" />
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerView"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
 
 </RelativeLayout>
