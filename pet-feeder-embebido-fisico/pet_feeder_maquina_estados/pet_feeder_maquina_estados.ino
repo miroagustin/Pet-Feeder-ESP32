@@ -4,6 +4,7 @@
 #include <MFRC522.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <freertos/semphr.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h>
@@ -113,7 +114,8 @@ struct Estado
   char nombre[50];
 };
 
-struct BuzzerParams {
+struct BuzzerParams 
+{
     int duration;
     int repeats;
 };
@@ -174,6 +176,7 @@ unsigned long currentTime, lastProximityTime, lastPotTime;
 unsigned int umbralAlimentoMax = POT_MAX / 15;
 unsigned int prevPotValue = UMBRAL_DIFERENCIA_DE_PESO;
 String RFID_key_leido;
+SemaphoreHandle_t xMutex;
 
 Evento evento_poll;
 Servo myServo;
@@ -192,8 +195,8 @@ void setup()
   client.setCallback(callback);
   // Configurar la conexión segura SSL/TLS
   espClient.setCACert(root_ca); // Debes proporcionar el certificado raíz del servidor MQTT
-
   estado_actual = ESTADO_INIT;
+  xMutex = xSemaphoreCreateMutex();
   // configure the trigger pin to output mode
   pinMode(TRIG_PIN, OUTPUT);
   // configure the echo pin to input mode
@@ -225,11 +228,8 @@ void loop()
   {
     client.loop();
   }
-
   fsm();
-
   currentTime = millis(); 
- 
 }
 
 void fsm()
@@ -238,173 +238,176 @@ void fsm()
   generaEvento();
   switch (estado_actual)
   {
-  case ESTADO_INIT:
-  {
-    switch (evento_actual) 
+    case ESTADO_INIT:
     {
-      case EVENTO_CONEXION_ON:
+      switch (evento_actual) 
       {
-        estado_actual = ESTADO_ESPERA;
+        case EVENTO_CONEXION_ON:
+        {
+          estado_actual = ESTADO_ESPERA;
+        }
+        break;
       }
-      break;
-    }
-  }
-  break;
-  case ESTADO_ESPERA:
-  {
-    switch (evento_actual)
-    {
-    case EVENTO_CONEXION_OFF:
-      {
-        estado_actual = ESTADO_INIT;
-      }
-      break;
-    case EVENTO_PRESENCIA_ON:
-    {
-      // TODO ACCION
-      estado_actual = ESTADO_DETECTA_PRESENCIA;
-      cant_comida_inicio_presencia = potValue;
     }
     break;
-    case EVENTO_RENOVAR_COMIDA:
+    case ESTADO_ESPERA:
     {
-      launchBuzzerTask(SHORT_BUZZ, 2);  // Sonido corto 3 veces
-      estado_actual = ESTADO_RENOVAR_COMIDA;
-    }
-    break;
-    case EVENTO_HORA_COMIDA:
-    {
-      // TODO ACCION
-      open_door(); 
-      estado_actual = ESTADO_SERVIR_COMIDA;
-    }
-    break;
-    }
-  }
-  break;
-  case ESTADO_DETECTA_PRESENCIA:
-  {
-    switch (evento_actual)
-    {
-    case EVENTO_CONEXION_OFF:
+      switch (evento_actual)
       {
-        estado_actual = ESTADO_INIT;
+        case EVENTO_CONEXION_OFF:
+        {
+          estado_actual = ESTADO_INIT;
+        }
+        break;
+        case EVENTO_PRESENCIA_ON:
+        {
+          // TODO ACCION
+          estado_actual = ESTADO_DETECTA_PRESENCIA;
+          cant_comida_inicio_presencia = potValue;
+        }
+        break;
+        case EVENTO_RENOVAR_COMIDA:
+        {
+          launchBuzzerTask(SHORT_BUZZ, 2);  // Sonido corto 3 veces
+          estado_actual = ESTADO_RENOVAR_COMIDA;
+        }
+        break;
+        case EVENTO_HORA_COMIDA:
+        {
+          // TODO ACCION
+          open_door(); 
+          estado_actual = ESTADO_SERVIR_COMIDA;
+        }
+        break;
       }
-      break;
-    case EVENTO_PRESENCIA_OFF:
+    }
+    break;
+    case ESTADO_DETECTA_PRESENCIA:
     {
-      // TODO ACCION
-      diferencia_cant_comida = cant_comida_inicio_presencia - potValue;
+      switch (evento_actual)
+      {
+        case EVENTO_CONEXION_OFF:
+        {
+          estado_actual = ESTADO_INIT;
+        }
+        break;
+        case EVENTO_PRESENCIA_OFF:
+        {
+          // TODO ACCION
+          diferencia_cant_comida = cant_comida_inicio_presencia - potValue;
 
-      if(diferencia_cant_comida > UMBRAL_DIFERENCIA_DE_PESO){
-        String mensaje = String(RFID_key_leido) + ";" + String(diferencia_cant_comida);
-        
-        //publica en el topico de estadistica
-        client.publish(MQTT_TOPICO_ESTADISTICA,mensaje.c_str());
+          if(diferencia_cant_comida > UMBRAL_DIFERENCIA_DE_PESO)
+          {
+            String mensaje = String(RFID_key_leido) + ";" + String(diferencia_cant_comida);
+            
+            //publica en el topico de estadistica
+            client.publish(MQTT_TOPICO_ESTADISTICA,mensaje.c_str());
+          }
+          
+          estado_actual = ESTADO_ESPERA;
+        }
+        break;
+        case EVENTO_DETECTA_RFID:
+        {
+          // TODO ACCION
+          leer_RFID();
+          estado_actual = ESTADO_DETECTA_RFID;
+        }
+        break;
       }
-      
-      estado_actual = ESTADO_ESPERA;
     }
     break;
-    case EVENTO_DETECTA_RFID:
+    case ESTADO_DETECTA_RFID:
     {
-      // TODO ACCION
-      leer_RFID();
-      estado_actual = ESTADO_DETECTA_RFID;
-    }
-    break;
-    }
-  }
-  break;
-  case ESTADO_DETECTA_RFID:
-  {
-    switch (evento_actual)
-    {
-    case EVENTO_CONEXION_OFF:
+      switch (evento_actual)
       {
-        estado_actual = ESTADO_INIT;
+        case EVENTO_CONEXION_OFF:
+        {
+          estado_actual = ESTADO_INIT;
+        }
+        break;
+        case EVENTO_RFID_LEIDO:
+        {
+          // TODO ACCION
+          RFID_leido = false;
+          estado_actual = ESTADO_DETECTA_PRESENCIA;
+        }
+        break;
       }
-      break;
-    case EVENTO_RFID_LEIDO:
-    {
-      // TODO ACCION
-      RFID_leido = false;
-      estado_actual = ESTADO_DETECTA_PRESENCIA;
     }
     break;
-    }
-  }
-  break;
-  case ESTADO_RENOVAR_COMIDA:
-  {
-    switch (evento_actual)
+    case ESTADO_RENOVAR_COMIDA:
     {
-    case EVENTO_CONEXION_OFF:
+      switch (evento_actual)
       {
-        estado_actual = ESTADO_INIT;
+        case EVENTO_CONEXION_OFF:
+        {
+          estado_actual = ESTADO_INIT;
+        }
+        break;
+        case EVENTO_COMIDA_RENOVADA:
+        {
+          // TODO ACCION
+          estado_actual = ESTADO_ESPERA;
+        }
+        break;
       }
-      break;
-    case EVENTO_COMIDA_RENOVADA:
-    {
-      // TODO ACCION
-      estado_actual = ESTADO_ESPERA;
     }
     break;
-    }
-  }
-  break;
-  case ESTADO_SERVIR_COMIDA:
-  {
-    switch (evento_actual)
+    case ESTADO_SERVIR_COMIDA:
     {
-    case EVENTO_CONEXION_OFF:
+      switch (evento_actual)
       {
-        estado_actual = ESTADO_INIT;
+        case EVENTO_CONEXION_OFF:
+        {
+          estado_actual = ESTADO_INIT;
+        }
+        break;
+        case EVENTO_COMIDA_SERVIDA:
+        {
+          // Cierro la puerta, prendo el buzzer y dejo de estar en horario comida
+          esHoraComida = false;
+          close_door(); 
+          launchBuzzerTask(LONG_BUZZ, 1);  // Sonido largo una vez
+          estado_actual = ESTADO_ESPERA;
+        }
+        break;
+        case EVENTO_SIN_COMIDA:
+        {
+          launchBuzzerTask(SHORT_BUZZ, 5);  // Sonido corto una vez     
+          estado_actual = ESTADO_PEDIR_RECARGA;
+        }
+        break;
       }
-      break;
-    case EVENTO_COMIDA_SERVIDA:
-    {
-      // Cierro la puerta, prendo el buzzer y dejo de estar en horario comida
-      esHoraComida = false;
-      close_door(); 
-      launchBuzzerTask(LONG_BUZZ, 1);  // Sonido largo una vez
-      estado_actual = ESTADO_ESPERA;
     }
     break;
-    case EVENTO_SIN_COMIDA:
+    case ESTADO_PEDIR_RECARGA:
     {
-       launchBuzzerTask(SHORT_BUZZ, 5);  // Sonido corto una vez     
-      estado_actual = ESTADO_PEDIR_RECARGA;
-    }
-    break;
-    }
-  }
-  break;
-  case ESTADO_PEDIR_RECARGA:
-  {
-    switch (evento_actual)
-    {
-      case EVENTO_CONEXION_OFF:
+      switch (evento_actual)
       {
-        estado_actual = ESTADO_INIT;
+        case EVENTO_CONEXION_OFF:
+        {
+          estado_actual = ESTADO_INIT;
+        }
+        break;
+        case EVENTO_RECARGA_COMIDA:
+        {
+          // TODO ACCION)
+          estado_actual = ESTADO_SERVIR_COMIDA;
+        }
+        break;
       }
-      break;
-    case EVENTO_RECARGA_COMIDA:
-    {
-      // TODO ACCION)
-      estado_actual = ESTADO_SERVIR_COMIDA;
     }
     break;
-    }
-  }
-  break;
   }
   logFSM();
 }
 
-String obtenerHoraActual() {
+String obtenerHoraActual()
+{
   struct tm timeinfo;
-  if(!getLocalTime(&timeinfo)){
+  if(!getLocalTime(&timeinfo))
+  {
     Serial.println("Error al obtener la hora");
     return String(); // Devuelve una cadena vacía en caso de error
   }
@@ -423,9 +426,10 @@ void obtener_dia()
 
     // Obtener la estructura de tiempo actual
     struct tm timeinfo;
-    if(!getLocalTime(&timeinfo)){
-        Serial.println("Failed to obtain time");
-        return;
+    if(!getLocalTime(&timeinfo))
+    {
+      Serial.println("Failed to obtain time");
+      return;
     }
 
     // Formatear la fecha en dd/mm
@@ -439,7 +443,7 @@ void obtener_dia()
     {
         if (!preferences.putString("fecha", fecha)) 
         {          
-              Serial.println("Error al guardar la fecha.");
+          Serial.println("Error al guardar la fecha.");
         }
 
       Serial.println("Fecha actualizada: " + String(fecha));
@@ -452,20 +456,20 @@ bool check_procesados(String entryTime)
 {
   preferences.begin("my-app", false);
     
-      String fecha = preferences.getString("fecha", "");
-      
-      if(fecha.indexOf(entryTime) == -1)
-      {
-       Serial.print("ENTRO");
-        fecha += ",";
-        fecha += entryTime;
-         preferences.putString("fecha", fecha);
-        return true;
-      }
-      else 
-      {
-        return false;
-      }
+  String fecha = preferences.getString("fecha", "");
+  
+  if(fecha.indexOf(entryTime) == -1)
+  {
+    Serial.print("ENTRO");
+    fecha += ",";
+    fecha += entryTime;
+    preferences.putString("fecha", fecha);
+    return true;
+  }
+  else 
+  {
+    return false;
+  }
   preferences.end();
 }
 // Función para comprobar la hora y ejecutar la acción correspondiente
@@ -483,7 +487,7 @@ void checkAndExecute()
   preferences.end();
 
   if (data.length() > 0)
-   {
+  {
     int startIndex = 0;
     int endIndex = data.indexOf(',');
     String fecha;
@@ -516,10 +520,10 @@ void checkAndExecute()
     if (entryTime == horaActual) 
     {
       if(check_procesados(entryTime))
-        {
-          esHoraComida = true; 
-          gramosDeseados = grams.toInt();
-        }
+      {
+        esHoraComida = true; 
+        gramosDeseados = grams.toInt();
+      }
     }
   }
 }
@@ -541,7 +545,9 @@ void check_weight()
     lastPotTime = currentTime;
   unsigned long timediff = currentTime - lastPotTime;
   // guardamos la variable compartida para evitar lecturas sucias en la ejecucion de la funcion
+  xSemaphoreTake(xMutex, portMAX_DELAY);
   int pesoActual = potValue;
+  xSemaphoreGive(xMutex);
   int diferenciaPeso = (prevPotValue - pesoActual);
 
   // Checkeo que haya cambiado el valor anterior leido
@@ -634,22 +640,24 @@ int check_proximity()
 
 void open_door()
 {
-    // Abrir compuerta
-    myServo.write(POS_APERTURA);
+  // Abrir compuerta
+  myServo.write(POS_APERTURA);
 }
 void close_door()
 {
-    // Cerrar compuerta
-    myServo.write(POS_MIN);
+  // Cerrar compuerta
+  myServo.write(POS_MIN);
 }
 
-void buzzer_control(int duration, int repeats) {
-    for (int i = 0; i < repeats; i++) {
-        digitalWrite(BUZZER_PIN, HIGH);
-        vTaskDelay(duration / portTICK_PERIOD_MS);
-        digitalWrite(BUZZER_PIN, LOW);
-        vTaskDelay(100 / portTICK_PERIOD_MS);  // Pequeña pausa entre sonidos
-    }
+void buzzer_control(int duration, int repeats)
+{
+  for (int i = 0; i < repeats; i++) 
+  {
+      digitalWrite(BUZZER_PIN, HIGH);
+      vTaskDelay(duration / portTICK_PERIOD_MS);
+      digitalWrite(BUZZER_PIN, LOW);
+      vTaskDelay(100 / portTICK_PERIOD_MS);  // Pequeña pausa entre sonidos
+  }
 }
 
 void logFSM()
@@ -697,7 +705,8 @@ void leer_RFID()
   // Mostrar UID en el monitor serie
   Serial.print("UID de la tarjeta:");
   RFID_key_leido = "";
-  for (byte i = 0; i < mfrc522.uid.size; i++) {
+  for (byte i = 0; i < mfrc522.uid.size; i++) 
+  {
     Serial.print(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " ");
     Serial.print(mfrc522.uid.uidByte[i], HEX);
     char hexString[3]; // Buffer to store hex string
@@ -713,122 +722,106 @@ void leer_RFID()
 }
 void launchWeightReadTask() //FreeRTOS
 {
-      xTaskCreatePinnedToCore(
-        get_units_task,      // Función de la tarea
-        "Get Units Task",    // Nombre de la tarea
-        10000,               // Tamaño de la pila
-        NULL,                // Parámetro de la tarea
-        2,                   // Prioridad de la tarea (ajustar según sea necesario)
-        NULL,                // Puntero a la tarea
-        1                    // Núcleo donde se ejecutará la tarea (0 = primer núcleo, 1 = segundo núcleo)
-    );
+  xTaskCreatePinnedToCore(
+    get_units_task,      // Función de la tarea
+    "Get Units Task",    // Nombre de la tarea
+    10000,               // Tamaño de la pila
+    NULL,                // Parámetro de la tarea
+    2,                   // Prioridad de la tarea (ajustar según sea necesario)
+    NULL,                // Puntero a la tarea
+    1                    // Núcleo donde se ejecutará la tarea (0 = primer núcleo, 1 = segundo núcleo)
+  );
 }
 
 
 void launchBuzzerTask(int duration, int repeats) // FreeRTOS
 {
-    BuzzerParams* params = new BuzzerParams{duration, repeats};
-    xTaskCreatePinnedToCore(
-        buzzerTask,    // Función de la tarea
-        "Buzzer Task", // Nombre de la tarea
-        10000,         // Tamaño de la pila (stack size)
-        params,        // Parámetro que se pasa a la tarea
-        1,             // Prioridad de la tarea
-        NULL,          // Puntero a la tarea
-        1              // Núcleo donde se ejecutará la tarea (0 = primer núcleo, 1 = segundo núcleo)
-    );
+  BuzzerParams* params = new BuzzerParams{duration, repeats};
+  xTaskCreatePinnedToCore(
+    buzzerTask,    // Función de la tarea
+    "Buzzer Task", // Nombre de la tarea
+    10000,         // Tamaño de la pila (stack size)
+    params,        // Parámetro que se pasa a la tarea
+    1,             // Prioridad de la tarea
+    NULL,          // Puntero a la tarea
+    1              // Núcleo donde se ejecutará la tarea (0 = primer núcleo, 1 = segundo núcleo)
+  );
 }
 
 void buzzerTask(void *parameter) 
 {
-    BuzzerParams* params = static_cast<BuzzerParams*>(parameter);
-    buzzer_control(params->duration, params->repeats);
-    delete params; // Liberar la memoria asignada para los parámetros
-    vTaskDelete(NULL);  // Termina la tarea cuando se complete
+  BuzzerParams* params = static_cast<BuzzerParams*>(parameter);
+  buzzer_control(params->duration, params->repeats);
+  delete params; // Liberar la memoria asignada para los parámetros
+  vTaskDelete(NULL);  // Termina la tarea cuando se complete
 }
 
 void get_units_task(void *parameter) 
 {
-    while(true)
-    {  	
-        celda.power_up();
-        // Realizar la lectura bloqueante
-        int newValue = celda.get_units(10);
-        potValue = newValue;
-        celda.power_down();	
-        // Dormir un tiempo para permitir otras operaciones (ajustar según sea necesario)
-        vTaskDelay(VTASK_SLEEP_TIME / portTICK_PERIOD_MS);
-    }
+  while(true)
+  {  
+    celda.power_up();
+    // Realizar la lectura bloqueante
+    int newValue = celda.get_units(10);
+    celda.power_down();	
+    xSemaphoreTake(xMutex, portMAX_DELAY);
+    potValue = newValue;
+    xSemaphoreGive(xMutex);
+    // Dormir un tiempo para permitir otras operaciones (ajustar según sea necesario)
+    vTaskDelay(VTASK_SLEEP_TIME / portTICK_PERIOD_MS);
+  }
 }
 void callback(char* topic, byte* payload, unsigned int length)
 {
-    Serial.print("Mensaje recibido en el tópico: ");
-    Serial.print(topic);
-    Serial.print(". Length: ");
-    Serial.print(length);
-    Serial.print(". Contenido: ");
+  Serial.print("Mensaje recibido en el tópico: ");
+  Serial.print(topic);
+  Serial.print(". Length: ");
+  Serial.print(length);
+  Serial.print(". Contenido: ");
 
-    String message;
-    for (unsigned int i = 0; i < length; i++) {
-      message += (char)payload[i];
-    }
-    Serial.println(message);
+  String message;
+  for (unsigned int i = 0; i < length; i++) 
+  {
+    message += (char)payload[i];
+  }
+  Serial.println(message);
 
-    preferences.begin("my-app", false);
-  
-    if (strcmp(topic, MQTT_TOPICO_ALIMENTACION) == 0) 
-    { 
-      // Concatenar el nuevo string al existente
-      String currentData = preferences.getString("data", "");
-      if (currentData.length() > 0)
-      {
-        currentData += ",";
-      }
-      currentData += message;
-      preferences.putString("data", currentData);
-      Serial.println("Datos guardados en NVS: " + currentData);
-    } 
-    else if (strcmp(topic, MQTT_TOPICO_SINCRONIZAR) == 0) 
+  preferences.begin("my-app", false);
+
+  if (strcmp(topic, MQTT_TOPICO_ALIMENTACION) == 0) 
+  { 
+    // Concatenar el nuevo string al existente
+    String currentData = preferences.getString("data", "");
+    if (currentData.length() > 0)
     {
-      // Reemplazar el contenido de "data" con el nuevo payload
-      preferences.putString("data", message);
-      Serial.println("Datos sincronizados en NVS: " + message);
-    } 
-    else if (strcmp(topic, MQTT_TOPICO_HORA_COMIDA) == 0) 
-    {
-      Serial.print(". ES HORA COMIDA POR MQTT"); //acá tengo q hacer lo de la balanza
-      preferences.putString("horaComida", message); // hace falta? 
-      
-      size_t pos = message.indexOf(';');
-      String numberPart = message.substring(pos + 1); // Obtiene la subcadena a partir del delimitador
-
-      gramosDeseados = numberPart.toInt();
-
-      esHoraComida = true;
+      currentData += ",";
     }
+    currentData += message;
+    preferences.putString("data", currentData);
+    Serial.println("Datos guardados en NVS: " + currentData);
+  } 
+  else if (strcmp(topic, MQTT_TOPICO_SINCRONIZAR) == 0) 
+  {
+    // Reemplazar el contenido de "data" con el nuevo payload
+    preferences.putString("data", message);
+    Serial.println("Datos sincronizados en NVS: " + message);
+  } 
+  else if (strcmp(topic, MQTT_TOPICO_HORA_COMIDA) == 0) 
+  {
+    Serial.print(". ES HORA COMIDA POR MQTT"); //acá tengo q hacer lo de la balanza
+    preferences.putString("horaComida", message); // hace falta? 
     
-    preferences.end();
+    size_t pos = message.indexOf(';');
+    String numberPart = message.substring(pos + 1); // Obtiene la subcadena a partir del delimitador
+
+    gramosDeseados = numberPart.toInt();
+
+    esHoraComida = true;
+  }
+  
+  preferences.end();
 }
 
-void reconnect()
-{
-    if (!client.connected()) 
-    {
-        Serial.println("Conectando al servidor MQTT...");
-        if (client.connect("ESP32Client", MQTT_USER, MQTT_PASSWORD))
-        {
-            Serial.println("Conectado al servidor MQTT");
-            client.subscribe(MQTT_TOPICO_HORA_COMIDA);
-            client.subscribe(MQTT_TOPICO_SINCRONIZAR);
-            client.subscribe(MQTT_TOPICO_ALIMENTACION);
-        } 
-        else 
-        {
-            Serial.print("Fallo en la conexión, rc=");
-            Serial.println(client.state());
-        }
-    }
-}
 int check_conexion() 
 {
   bool mqtt = false;
@@ -836,13 +829,15 @@ int check_conexion()
   bool time = false;
 
   struct tm timeinfo;
-  if (WiFi.status() != WL_CONNECTED) {
-      Serial.println("Connecting to WiFi...");
+  if (WiFi.status() != WL_CONNECTED) 
+  {
+    Serial.println("Connecting to WiFi...");
   } 
   else
   {
     wifi = true;
-    if (!getLocalTime(&timeinfo)) {
+    if (!getLocalTime(&timeinfo)) 
+    {
       Serial.println("Fallo al obtener la hora");
     }
     else 
@@ -852,35 +847,34 @@ int check_conexion()
     mqtt = client.connected();
     if (!mqtt) 
     {
-        Serial.println("Conectando al servidor MQTT...");
-        if (client.connect("ESP32Client", MQTT_USER, MQTT_PASSWORD))
-        {
-            mqtt = true;
-            Serial.println("Conectado al servidor MQTT");
-            client.subscribe(MQTT_TOPICO_HORA_COMIDA);
-            client.subscribe(MQTT_TOPICO_SINCRONIZAR);
-            client.subscribe(MQTT_TOPICO_ALIMENTACION);
-        } 
-        else 
-        {
-            Serial.print("Fallo en la conexión, rc=");
-            Serial.println(client.state());
-        }
+      Serial.println("Conectando al servidor MQTT...");
+      if (client.connect("ESP32Client", MQTT_USER, MQTT_PASSWORD))
+      {
+        mqtt = true;
+        Serial.println("Conectado al servidor MQTT");
+        client.subscribe(MQTT_TOPICO_HORA_COMIDA);
+        client.subscribe(MQTT_TOPICO_SINCRONIZAR);
+        client.subscribe(MQTT_TOPICO_ALIMENTACION);
+      } 
+      else 
+      {
+        Serial.print("Fallo en la conexión, rc=");
+        Serial.println(client.state());
+      }
     }
   }
-
 
   if (wifi && mqtt && time)
   {
     return EVENTO_CONEXION_ON;
   }
-
   return EVENTO_CONEXION_OFF;
 }
 void printLocalTime() 
 {
   struct tm timeinfo;
-  if (!getLocalTime(&timeinfo)) {
+  if (!getLocalTime(&timeinfo)) 
+  {
     Serial.println("Fallo al obtener la hora");
     return;
   }
