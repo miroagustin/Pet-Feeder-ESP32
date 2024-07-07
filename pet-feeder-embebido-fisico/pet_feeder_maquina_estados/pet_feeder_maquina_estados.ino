@@ -10,15 +10,12 @@
 #include <time.h>
 #include <Preferences.h>
 
-int check_proximity();
-void buzzer_control();
-void logFSM();
-char *getEstado(int estado);
 int check_RFID();
-void leer_RFID();
 int check_renovar_comida();
 int check_servir_comida();
 int check_recargar_dispenser();
+int check_conexion();
+int check_proximity();
 
 /* PINES */
 #define BUZZER_PIN 25
@@ -46,8 +43,8 @@ int check_recargar_dispenser();
 // Balanza
 #define POT_MIN 0
 #define POT_MAX 4095
-#define TO_POT 10000      // 10 seg para detectar que no hay mas alimento
-#define UMBRAL_DIFERENCIA_DE_PESO 5
+#define TO_POT 30000      // 10 seg para detectar que no hay mas alimento
+#define UMBRAL_DIFERENCIA_DE_PESO 3
 #define ESCALA_BALANZA 400.27f
 // Servo
 #define SERVO_TIMER 3
@@ -64,8 +61,8 @@ int check_recargar_dispenser();
 #define SHORT_BUZZ 200 // Duración corta en milisegundos
 #define LONG_BUZZ 1000  // Duración larga en milisegundos
 // Wifi
-#define WIFI_SSID "ROCA 2.4GHz"
-#define WIFI_PASS "00413020671"
+#define WIFI_SSID "Miro"
+#define WIFI_PASS "agus1234"
 // MQTT
 #define MQTT_PORT 8883
 #define MQTT_SERVER "y8ad1cae.ala.us-east-1.emqxsl.com"
@@ -78,16 +75,17 @@ int check_recargar_dispenser();
 #define MQTT_TOPICO_ESTADISTICA "/pet-feeder/estadistica"
 
 /**ESTADOS**/
-#define CANT_ESTADOS 6
+#define CANT_ESTADOS 7
 #define ESTADO_ESPERA 1000
 #define ESTADO_DETECTA_PRESENCIA 1001
 #define ESTADO_DETECTA_RFID 1002
 #define ESTADO_RENOVAR_COMIDA 1003
 #define ESTADO_SERVIR_COMIDA 1004
 #define ESTADO_PEDIR_RECARGA 1005
+#define ESTADO_INIT 1006
 
 /**EVENTOS**/
-#define CANT_EVENTOS 10
+#define CANT_EVENTOS 12
 #define EVENTO_PRESENCIA_ON 2000
 #define EVENTO_PRESENCIA_OFF 2001
 #define EVENTO_DETECTA_RFID 2002
@@ -99,6 +97,8 @@ int check_recargar_dispenser();
 #define EVENTO_SIN_COMIDA 2009
 #define EVENTO_RECARGA_COMIDA 2010
 #define EVENTO_CONTINUE 2011
+#define EVENTO_CONEXION_ON 2012
+#define EVENTO_CONEXION_OFF 2013
 
 /** STRUCTS **/
 struct Evento
@@ -126,6 +126,7 @@ struct Estado estados[CANT_ESTADOS] = {
     {ESTADO_RENOVAR_COMIDA, "ESTADO_RENOVAR_COMIDA"},
     {ESTADO_SERVIR_COMIDA, "ESTADO_SERVIR_COMIDA"},
     {ESTADO_PEDIR_RECARGA, "ESTADO_PEDIR_RECARGA"},
+    {ESTADO_INIT, "ESTADO_INIT"},
 };
 // DECLARO LOS EVENTOS CON SUS ACCIONES CORRESPONDIENTES PARA REALIZAR POOLING
 struct Evento eventos[CANT_EVENTOS] = {
@@ -138,6 +139,8 @@ struct Evento eventos[CANT_EVENTOS] = {
     {&check_recargar_dispenser, EVENTO_SIN_COMIDA, "EVENTO_SIN_COMIDA"},
     {&check_recargar_dispenser, EVENTO_RECARGA_COMIDA, "EVENTO_RECARGA_COMIDA"},
     {&check_servir_comida, EVENTO_HORA_COMIDA, "EVENTO_HORA_COMIDA"},
+    {&check_conexion, EVENTO_CONEXION_OFF, "EVENTO_CONEXION_OFF"},
+    {&check_conexion, EVENTO_CONEXION_ON, "EVENTO_CONEXION_ON"},
     {&check_servir_comida, EVENTO_COMIDA_SERVIDA, "EVENTO_COMIDA_SERVIDA"}};
 
 /** VARIABLES GLOBALES **/
@@ -185,19 +188,12 @@ void setup()
   // put your setup code here, to run once:
   Serial.begin(FRECUENCIA_SERIAL);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
-  // Esperar a que se establezca la conexión WiFi
-  while (WiFi.status() != WL_CONNECTED) {
-      delay(500);
-      Serial.println("Connecting to WiFi...");
-  }
-  Serial.println("WiFi Conectado");
   client.setServer(MQTT_SERVER, MQTT_PORT);
   client.setCallback(callback);
   // Configurar la conexión segura SSL/TLS
   espClient.setCACert(root_ca); // Debes proporcionar el certificado raíz del servidor MQTT
-  // Intentar conectar al servidor MQTT
-  reconnect();
-  estado_actual = ESTADO_ESPERA;
+
+  estado_actual = ESTADO_INIT;
   // configure the trigger pin to output mode
   pinMode(TRIG_PIN, OUTPUT);
   // configure the echo pin to input mode
@@ -225,11 +221,11 @@ void setup()
 
 void loop()
 {
-  if (!client.connected()) 
+  if (client.connected()) 
   {
-    reconnect();
+    client.loop();
   }
-  client.loop();
+
   fsm();
 
   currentTime = millis(); 
@@ -242,10 +238,27 @@ void fsm()
   generaEvento();
   switch (estado_actual)
   {
+  case ESTADO_INIT:
+  {
+    switch (evento_actual) 
+    {
+      case EVENTO_CONEXION_ON:
+      {
+        estado_actual = ESTADO_ESPERA;
+      }
+      break;
+    }
+  }
+  break;
   case ESTADO_ESPERA:
   {
     switch (evento_actual)
     {
+    case EVENTO_CONEXION_OFF:
+      {
+        estado_actual = ESTADO_INIT;
+      }
+      break;
     case EVENTO_PRESENCIA_ON:
     {
       // TODO ACCION
@@ -273,6 +286,11 @@ void fsm()
   {
     switch (evento_actual)
     {
+    case EVENTO_CONEXION_OFF:
+      {
+        estado_actual = ESTADO_INIT;
+      }
+      break;
     case EVENTO_PRESENCIA_OFF:
     {
       // TODO ACCION
@@ -302,6 +320,11 @@ void fsm()
   {
     switch (evento_actual)
     {
+    case EVENTO_CONEXION_OFF:
+      {
+        estado_actual = ESTADO_INIT;
+      }
+      break;
     case EVENTO_RFID_LEIDO:
     {
       // TODO ACCION
@@ -316,6 +339,11 @@ void fsm()
   {
     switch (evento_actual)
     {
+    case EVENTO_CONEXION_OFF:
+      {
+        estado_actual = ESTADO_INIT;
+      }
+      break;
     case EVENTO_COMIDA_RENOVADA:
     {
       // TODO ACCION
@@ -329,6 +357,11 @@ void fsm()
   {
     switch (evento_actual)
     {
+    case EVENTO_CONEXION_OFF:
+      {
+        estado_actual = ESTADO_INIT;
+      }
+      break;
     case EVENTO_COMIDA_SERVIDA:
     {
       // Cierro la puerta, prendo el buzzer y dejo de estar en horario comida
@@ -351,6 +384,11 @@ void fsm()
   {
     switch (evento_actual)
     {
+      case EVENTO_CONEXION_OFF:
+      {
+        estado_actual = ESTADO_INIT;
+      }
+      break;
     case EVENTO_RECARGA_COMIDA:
     {
       // TODO ACCION)
@@ -791,7 +829,56 @@ void reconnect()
         }
     }
 }
-void printLocalTime() {
+int check_conexion() 
+{
+  bool mqtt = false;
+  bool wifi = false;
+  bool time = false;
+
+  struct tm timeinfo;
+  if (WiFi.status() != WL_CONNECTED) {
+      Serial.println("Connecting to WiFi...");
+  } 
+  else
+  {
+    wifi = true;
+    if (!getLocalTime(&timeinfo)) {
+      Serial.println("Fallo al obtener la hora");
+    }
+    else 
+    {
+      time = true;
+    }
+    mqtt = client.connected();
+    if (!mqtt) 
+    {
+        Serial.println("Conectando al servidor MQTT...");
+        if (client.connect("ESP32Client", MQTT_USER, MQTT_PASSWORD))
+        {
+            mqtt = true;
+            Serial.println("Conectado al servidor MQTT");
+            client.subscribe(MQTT_TOPICO_HORA_COMIDA);
+            client.subscribe(MQTT_TOPICO_SINCRONIZAR);
+            client.subscribe(MQTT_TOPICO_ALIMENTACION);
+        } 
+        else 
+        {
+            Serial.print("Fallo en la conexión, rc=");
+            Serial.println(client.state());
+        }
+    }
+  }
+
+
+  if (wifi && mqtt && time)
+  {
+    return EVENTO_CONEXION_ON;
+  }
+
+  return EVENTO_CONEXION_OFF;
+}
+void printLocalTime() 
+{
   struct tm timeinfo;
   if (!getLocalTime(&timeinfo)) {
     Serial.println("Fallo al obtener la hora");
