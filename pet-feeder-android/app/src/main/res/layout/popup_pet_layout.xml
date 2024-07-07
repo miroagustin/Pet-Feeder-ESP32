@@ -9,9 +9,10 @@
     <EditText
         android:id="@+id/popup_input"
         android:layout_width="match_parent"
-        android:inputType="number"
         android:layout_height="wrap_content"
-        android:hint="Ingresar comida y agitar"
-        android:textColorHint="@color/black"
-        android:textColor="@color/black"/>
+        android:textColor="@color/black"
+        android:hint="Ingresar nombre mascota"
+        android:inputType="text"
+        android:textColorHint="@color/black" />
+
 </LinearLayout>

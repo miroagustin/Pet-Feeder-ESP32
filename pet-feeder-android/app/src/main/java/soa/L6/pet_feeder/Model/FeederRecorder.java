@@ -116,4 +116,9 @@ public class FeederRecorder {
         foodList.replaceAll(x -> x.compareTo(foodUpdate) > 0 ? foodUpdate : x);
     }
 
+    public void deleteFood(Food foodDelete)
+    {
+        foodList.remove(foodDelete);
+    }
+
 }

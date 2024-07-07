@@ -80,18 +80,6 @@ public class HomeFragment extends Fragment {
         input_time.setKeyListener(null); // Desactiva el teclado virtual
 
         setHomeData(mainActivity.feederState);
-        /*
-        new Handler(Looper.getMainLooper()).post(new Runnable() {
-            // Para que cargue primero el main activity y despues el fragment
-            @Override
-            public void run() {
-                MainActivity mainActivity = (MainActivity) getActivity();
-                if (mainActivity != null && mainActivity.feederState != null) {
-                    setHomeData(mainActivity.feederState);
-                    mainActivity.homeFragment = this;
-                }
-            }
-        });*/
 
         return root;
     }

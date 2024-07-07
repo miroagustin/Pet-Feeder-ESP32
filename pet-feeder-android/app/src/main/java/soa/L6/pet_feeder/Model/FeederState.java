@@ -24,7 +24,6 @@ public class FeederState {
     private boolean refillNeed;
     private boolean clearNeed;
     private EstadoEmbebido estado;
-    //private List<Food> alimentaciones = new ArrayList<>();
     private FeederRecorder feederRecorder = new FeederRecorder(PetFeederConstants.FILE_NAME_FOODS);
     private Context context;
 
