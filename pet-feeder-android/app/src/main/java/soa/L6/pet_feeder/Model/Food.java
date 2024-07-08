@@ -3,20 +3,23 @@ package soa.L6.pet_feeder.Model;
 import java.io.Serializable;
 import java.util.Objects;
 
-public class Food implements Serializable, Comparable<Food> {
+public class Food implements Serializable, Comparable<Food>
+{
     private static final long serialVersionUID = 1L; // Versión del serializable
 
     private String hour;
     private double food_amount;
 
-    public Food(String hour, Double food_amount) {
+    public Food(String hour, Double food_amount)
+    {
         this.hour = hour;
         this.food_amount = food_amount;
     }
 
 
     @Override
-    public String toString() {
+    public String toString()
+    {
         return "Food{" +
                 "hour='" + hour + '\'' +
                 ", food_amount=" + food_amount +
@@ -24,7 +27,8 @@ public class Food implements Serializable, Comparable<Food> {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(Object o)
+    {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Food food = (Food) o;
@@ -33,7 +37,8 @@ public class Food implements Serializable, Comparable<Food> {
     }
 
     @Override
-    public int compareTo(Food food) {
+    public int compareTo(Food food)
+    {
         // Convertimos los horarios a LocalTime para poder compararlos
         java.time.LocalTime thisTime = java.time.LocalTime.parse(this.hour);
         java.time.LocalTime otraTime = java.time.LocalTime.parse(food.getHour());

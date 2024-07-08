@@ -25,14 +25,16 @@ import soa.L6.pet_feeder.Model.PetRecorder;
 import soa.L6.pet_feeder.R;
 import soa.L6.pet_feeder.databinding.FragmentDashboardBinding;
 
-public class DashboardFragment extends Fragment {
+public class DashboardFragment extends Fragment
+{
 
     private FragmentDashboardBinding binding;
     private AlertDialog dialog;
     MainActivity mainActivity;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
-                             ViewGroup container, Bundle savedInstanceState) {
+                             ViewGroup container, Bundle savedInstanceState)
+    {
         DashboardViewModel dashboardViewModel =
                 new ViewModelProvider(this).get(DashboardViewModel.class);
 
@@ -45,7 +47,8 @@ public class DashboardFragment extends Fragment {
 
         PetRecorder petRecorder = mainActivity.petRecorder;
 
-        for (Pet pet : petRecorder.getPetList()) {
+        for (Pet pet : petRecorder.getPetList())
+        {
             addPetToContainer(containerLayout, pet);
         }
         return root;
@@ -59,13 +62,16 @@ public class DashboardFragment extends Fragment {
     public LinearLayout findPetCard(ViewGroup containerLayout, Pet pet)
     {
         // Verificar si ya existe una tarjeta con el mismo RFID
-        for (int i = 0; i < containerLayout.getChildCount(); i++) {
+        for (int i = 0; i < containerLayout.getChildCount(); i++)
+        {
             View child = containerLayout.getChildAt(i);
-            if (child instanceof LinearLayout) {
+            if (child instanceof LinearLayout)
+            {
                 LinearLayout petContainer = (LinearLayout) child;
                 TextView rfidTextView = (TextView) petContainer.getChildAt(1); // Asumiendo que el TextView del RFID es el segundo hijo
 
-                if (rfidTextView.getText().toString().equals(pet.getRfid_key())) {
+                if (rfidTextView.getText().toString().equals(pet.getRfid_key()))
+                {
                     // Actualizar la tarjeta existente
                     return petContainer;
                 }
@@ -84,7 +90,8 @@ public class DashboardFragment extends Fragment {
             updatePetCard(petContainer,pet);
         }
     }
-    private void updatePetCard(LinearLayout petContainer, Pet pet) {
+    private void updatePetCard(LinearLayout petContainer, Pet pet)
+    {
         // Asumiendo que los TextViews están en el orden: Nombre, RFID, Cantidad de Comidas, Cantidad de Comida, Promedio Ingerido
         ((TextView) petContainer.getChildAt(0)).setText("Nombre: " + pet.getName());
         ((TextView) petContainer.getChildAt(1)).setText(pet.getRfid_key());
@@ -92,7 +99,8 @@ public class DashboardFragment extends Fragment {
         ((TextView) petContainer.getChildAt(3)).setText("Cantidad de comida: " + pet.getFood_amount());
         ((TextView) petContainer.getChildAt(4)).setText("Promedio ingerido: " + String.format("%.2f", pet.getEat_average()));
     }
-    private void addPetToContainer(ViewGroup container, Pet pet) {
+    private void addPetToContainer(ViewGroup container, Pet pet)
+    {
         // Crear un contenedor para el Pet
         LinearLayout petContainer = new LinearLayout(getContext());
         petContainer.setOnClickListener(v -> editPetDialog(pet));
@@ -149,12 +157,14 @@ public class DashboardFragment extends Fragment {
 
 
     @Override
-    public void onDestroyView() {
+    public void onDestroyView()
+    {
         super.onDestroyView();
         binding = null;
     }
 
-    private void editPetDialog(Pet pet) {
+    private void editPetDialog(Pet pet)
+    {
         LayoutInflater inflater = getLayoutInflater();
         View popupView = inflater.inflate(R.layout.popup_pet_layout, null);
 
@@ -162,9 +172,11 @@ public class DashboardFragment extends Fragment {
         AlertDialog.Builder builder = new AlertDialog.Builder(new ContextThemeWrapper(getContext(), R.style.CustomDialogTheme));
         builder.setView(popupView)
                 .setTitle("Editar Mascota")
-                .setPositiveButton("Aceptar", new DialogInterface.OnClickListener() {
+                .setPositiveButton("Aceptar", new DialogInterface.OnClickListener()
+                {
                     @Override
-                    public void onClick(DialogInterface dialog, int which) {
+                    public void onClick(DialogInterface dialog, int which)
+                    {
                         // Acción al hacer clic en "Aceptar"
                         EditText input = popupView.findViewById(R.id.popup_input);
                         String userInput = input.getText().toString();
@@ -174,15 +186,18 @@ public class DashboardFragment extends Fragment {
                         mainActivity.petRecorder.savePetsToFile(getContext());
                         LinearLayout containerLayout = binding.getRoot().findViewById(R.id.contenedor_linear);
                         LinearLayout petLayout = findPetCard(containerLayout,pet);
-                        if(petLayout != null) {
+                        if(petLayout != null)
+                        {
                             updatePetCard(petLayout,pet);
                         }
 
                     }
                 })
-                .setNegativeButton("Cancelar", new DialogInterface.OnClickListener() {
+                .setNegativeButton("Cancelar", new DialogInterface.OnClickListener()
+                {
                     @Override
-                    public void onClick(DialogInterface dialog, int which) {
+                    public void onClick(DialogInterface dialog, int which)
+                    {
                         // Acción al hacer clic en "Cancelar"
                         dialog.dismiss();
                     }
@@ -190,9 +205,11 @@ public class DashboardFragment extends Fragment {
 
         // Mostrar el AlertDialog
         dialog = builder.create();
-        dialog.setOnShowListener(new DialogInterface.OnShowListener() {
+        dialog.setOnShowListener(new DialogInterface.OnShowListener()
+        {
             @Override
-            public void onShow(DialogInterface dialogInterface) {
+            public void onShow(DialogInterface dialogInterface)
+            {
                 EditText input = popupView.findViewById(R.id.popup_input);
                 input.requestFocus();
                 input.setText(pet.getName());

@@ -12,6 +12,5 @@
         android:inputType="number"
         android:layout_height="wrap_content"
         android:hint="Ingresar comida y agitar"
-        android:textColorHint="@color/black"
-        android:textColor="@color/black"/>
+        android:textColorHint="@color/black"/>
 </LinearLayout>

@@ -17,7 +17,8 @@ import java.util.stream.Collectors;
 
 import soa.L6.pet_feeder.Utils.PetFeederConstants;
 
-public class FeederState {
+public class FeederState
+{
 
     private String nextMealTime;
     private double foodAmount;
@@ -27,7 +28,8 @@ public class FeederState {
     private FeederRecorder feederRecorder = new FeederRecorder(PetFeederConstants.FILE_NAME_FOODS);
     private Context context;
 
-    public FeederState(Context context){
+    public FeederState(Context context)
+    {
         this.context = context;
         feederRecorder.loadFoodsFromFile(this.context);
         Food food = getNextFood();
@@ -36,14 +38,16 @@ public class FeederState {
         refillNeed = false;
         clearNeed = false;
     }
-    public FeederState(String nextMealTime, double foodAmount, boolean refillNeed, boolean clearNeed) {
+    public FeederState(String nextMealTime, double foodAmount, boolean refillNeed, boolean clearNeed)
+    {
         this.nextMealTime = nextMealTime;
         this.foodAmount = foodAmount;
         this.refillNeed = refillNeed;
         this.clearNeed = clearNeed;
     }
     @Override
-    public String toString() {
+    public String toString()
+    {
         return "FeederState{" +
                 "nextMealTime='" + nextMealTime + '\'' +
                 ", foodAmount=" + foodAmount +
@@ -53,7 +57,8 @@ public class FeederState {
                 ", alimentaciones=" + feederRecorder.getFoodList() +
                 '}';
     }
-    public Food getNextFood() {
+    public Food getNextFood()
+    {
         Food res = new Food("",0.0);
 
         if(!feederRecorder.getFoodList().isEmpty())
@@ -68,7 +73,8 @@ public class FeederState {
 
         return res;
     }
-    public String getNextMealTime() {
+    public String getNextMealTime()
+    {
         return getNextFood().getHour();
     }
     public void setNextMealTime(String nextMealTime) {
@@ -92,17 +98,20 @@ public class FeederState {
     public void setClearNeed(boolean clearNeed) {
         this.clearNeed = clearNeed;
     }
-    public void AddAlimentacion(String horario, double cantComida) {
+    public void AddAlimentacion(String horario, double cantComida)
+    {
         feederRecorder.addFoodToList(new Food(horario,cantComida));
         feederRecorder.saveFoodToFile(context);
     }
-    public void UpdateEstado(String message) {
+    public void UpdateEstado(String message)
+    {
         estado = EstadoEmbebido.fromString(message);
         if (Objects.equals(estado.getEstadoActual(), PetFeederConstants.ESTADO_RENOVAR_COMIDA))
             clearNeed = true;
         if (Objects.equals(estado.getEstadoActual(), PetFeederConstants.ESTADO_PEDIR_RECARGA))
             refillNeed = true;
-        if(Objects.equals(estado.getEstadoActual(), PetFeederConstants.ESTADO_ESPERA)) {
+        if(Objects.equals(estado.getEstadoActual(), PetFeederConstants.ESTADO_ESPERA))
+        {
             refillNeed = false;
             clearNeed = false;
         }

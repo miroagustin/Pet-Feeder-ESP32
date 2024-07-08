@@ -36,7 +36,8 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import java.util.List;
 import java.util.Objects;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity
+{
     private ActivityMainBinding binding;
     private SensorManager sensorManager;
     private SensorEventListener sensorEventListener;
@@ -46,23 +47,29 @@ public class MainActivity extends AppCompatActivity {
     public PetRecorder petRecorder;
     public FeederState feederState;
 
-    private final MqttCallback callback = new MqttCallback() {
+    private final MqttCallback callback = new MqttCallback()
+    {
         @Override
-        public void connectionLost(Throwable cause) {
+        public void connectionLost(Throwable cause)
+        {
             Log.d(MainActivity.class.getName(), "Conexión perdida");
         }
 
         @Override
-        public void messageArrived(String topic, MqttMessage message) {
+        public void messageArrived(String topic, MqttMessage message)
+        {
             String messageContent = new String(message.getPayload());
             Log.d(MainActivity.class.getName(), "Mensaje recibido: " + messageContent);
-            runOnUiThread(() -> {
+            runOnUiThread(() ->
+            {
 
-                if (Objects.equals(topic, PetFeederConstants.SUB_TOPIC_ESTADOS)) {
+                if (Objects.equals(topic, PetFeederConstants.SUB_TOPIC_ESTADOS))
+                {
                     feederState.UpdateEstado(messageContent);
                     callSetHomeDataInFragment();
                 }
-                if (Objects.equals(topic, PetFeederConstants.SUB_TOPIC_ESTADISTICA)) {
+                if (Objects.equals(topic, PetFeederConstants.SUB_TOPIC_ESTADISTICA))
+                {
                     String[] messageWithSplit = messageContent.split(";");
                     // por defecto nuevo rfid detectado le pongo nombre mascota
                     Pet messageCat = new Pet("Mascota ",messageWithSplit[0]);
@@ -96,13 +103,15 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        public void deliveryComplete(IMqttDeliveryToken token) {
+        public void deliveryComplete(IMqttDeliveryToken token)
+        {
             Log.d(MainActivity.class.getName(), "Entrega completada");
         }
     };
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState)
+    {
 
         mqttManager = new MQTTManager(this,callback);
         mqttManager.connect();
@@ -111,16 +120,20 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        sensorEventListener = new SensorEventListener() {
+        sensorEventListener = new SensorEventListener()
+        {
             private static final float SHAKE_THRESHOLD = 500f; // Puedes ajustar este valor según tu necesidad
             private long lastUpdate = 0;
             private float lastX, lastY, lastZ;
 
             @Override
-            public void onSensorChanged(SensorEvent event) {
-                if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            public void onSensorChanged(SensorEvent event)
+            {
+                if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER)
+                {
                     long currentTime = System.currentTimeMillis();
-                    if ((currentTime - lastUpdate) > 100) {
+                    if ((currentTime - lastUpdate) > 100)
+                    {
                         long timeDifference = (currentTime - lastUpdate);
                         lastUpdate = currentTime;
 
@@ -130,7 +143,8 @@ public class MainActivity extends AppCompatActivity {
 
                         float speed = Math.abs(x + y + z - lastX - lastY - lastZ) / timeDifference * 10000;
 
-                        if (speed > SHAKE_THRESHOLD) {
+                        if (speed > SHAKE_THRESHOLD)
+                        {
                             System.out.println("SE DETECTO SHAKE!");
                             callAcceptDialog();
                         }
@@ -143,7 +157,8 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onAccuracyChanged(Sensor sensor, int accuracy) {
+            public void onAccuracyChanged(Sensor sensor, int accuracy)
+            {
                 // No necesitas implementar esto, pero es obligatorio
             }
         };
@@ -171,40 +186,50 @@ public class MainActivity extends AppCompatActivity {
 
     }
     @Override
-    protected void onResume() {
+    protected void onResume()
+    {
         super.onResume();
         sensorManager.registerListener(sensorEventListener, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL);
     }
 
     @Override
-    protected void onPause() {
+    protected void onPause()
+    {
         super.onPause();
         sensorManager.unregisterListener(sensorEventListener);
     }
     public MQTTManager getMQTTManager() {
         return mqttManager;
     }
-    private void callSetHomeDataInFragment() {
-        if (homeFragment != null && homeFragment.isAdded()) {
+    private void callSetHomeDataInFragment()
+    {
+        if (homeFragment != null && homeFragment.isAdded())
+        {
             homeFragment.setHomeData(feederState);
-        } else {
+        } else
+        {
             Log.d(MainActivity.class.getName(), "homeFragment no está listo, reintentando...");
             getSupportFragmentManager().executePendingTransactions();
             new android.os.Handler().postDelayed(this::callSetHomeDataInFragment, 1000); // Reintentar después de 1 segundo
         }
     }
 
-    private void callAcceptDialog() {
-        if (homeFragment != null && homeFragment.isAdded()) {
+    private void callAcceptDialog()
+    {
+        if (homeFragment != null && homeFragment.isAdded())
+        {
             homeFragment.acceptDialog();
-        } else {
+        } else
+        {
             Log.d(MainActivity.class.getName(), "homeFragment no está listo, reintentando...");
             getSupportFragmentManager().executePendingTransactions();
             new android.os.Handler().postDelayed(this::callAcceptDialog, 1000); // Reintentar después de 1 segundo
         }
     }
-    private void callAddPetInFragment(Pet pet) {
-        if (dashboardFragment != null && dashboardFragment.isAdded()) {
+    private void callAddPetInFragment(Pet pet)
+    {
+        if (dashboardFragment != null && dashboardFragment.isAdded())
+        {
             dashboardFragment.addPetCard(pet);
         }
     }

@@ -3,7 +3,8 @@ package soa.L6.pet_feeder.Model;
 import java.io.Serializable;
 import java.util.Objects;
 
-public class Pet implements Serializable, Comparable<Pet> {
+public class Pet implements Serializable, Comparable<Pet>
+{
     private static final long serialVersionUID = 1L; // Versión del serializable
 
     private String name;
@@ -12,7 +13,8 @@ public class Pet implements Serializable, Comparable<Pet> {
     private double eat_average;
     private String rfid_key;
 
-    public Pet(String name,String key) {
+    public Pet(String name,String key)
+    {
         this.name = name;
         this.feed_times = 0;
         this.food_amount = 0;
@@ -20,7 +22,8 @@ public class Pet implements Serializable, Comparable<Pet> {
         this.rfid_key = key;
     }
 
-    public void record_meal(double ate_amount) {
+    public void record_meal(double ate_amount)
+    {
         feed_times++;
         food_amount += ate_amount;
         eat_average = food_amount / feed_times;
@@ -29,7 +32,8 @@ public class Pet implements Serializable, Comparable<Pet> {
 
 
     @Override
-    public String toString() {
+    public String toString()
+    {
         return "Pet{" +
                 "name='" + name + '\'' +
                 ", feed_times=" + feed_times +
@@ -38,7 +42,8 @@ public class Pet implements Serializable, Comparable<Pet> {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(Object o)
+    {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Pet pet = (Pet) o;
@@ -95,7 +100,8 @@ public class Pet implements Serializable, Comparable<Pet> {
     }
 
     @Override
-    public int compareTo(Pet o) {
+    public int compareTo(Pet o)
+    {
         if(this.rfid_key.compareTo(o.rfid_key) == 0){
             return 0;
         }

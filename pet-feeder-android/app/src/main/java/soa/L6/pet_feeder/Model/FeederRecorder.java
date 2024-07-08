@@ -12,36 +12,46 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-public class FeederRecorder {
+public class FeederRecorder
+{
 
     private List<Food> foodList;
     private String filename;
-    public FeederRecorder(String filename){
+    public FeederRecorder(String filename)
+    {
         foodList = new ArrayList<>();
         this.filename = filename;
     }
 
-    public void saveFoodToFile(Context context) {
+    public void saveFoodToFile(Context context)
+    {
         FileOutputStream fos = null;
         ObjectOutputStream oos = null;
         try {
             fos = context.openFileOutput(filename, Context.MODE_PRIVATE);
             oos = new ObjectOutputStream(fos);
             oos.writeObject(foodList);
-        } catch (IOException e) {
+        } catch (IOException e)
+        {
             e.printStackTrace();
-        } finally {
-            if (oos != null) {
+        } finally
+        {
+            if (oos != null)
+            {
                 try {
                     oos.close();
-                } catch (IOException e) {
+                } catch (IOException e)
+                {
                     e.printStackTrace();
                 }
             }
-            if (fos != null) {
-                try {
+            if (fos != null)
+            {
+                try
+                {
                     fos.close();
-                } catch (IOException e) {
+                } catch (IOException e)
+                {
                     e.printStackTrace();
                 }
             }
@@ -49,30 +59,41 @@ public class FeederRecorder {
     }
 
     // Método para cargar una lista de Pet desde un archivo
-    public void loadFoodsFromFile(Context context) {
+    public void loadFoodsFromFile(Context context)
+    {
         FileInputStream fis = null;
         ObjectInputStream ois = null;
         List<Food> foods = new ArrayList<>();
-        try {
+        try
+        {
             fis = context.openFileInput(filename);
             ois = new ObjectInputStream(fis);
             foods = (List<Food>) ois.readObject();
-        } catch (FileNotFoundException e) {
+        } catch (FileNotFoundException e)
+        {
             e.printStackTrace();
-        } catch (IOException | ClassNotFoundException e) {
+        } catch (IOException | ClassNotFoundException e)
+        {
             e.printStackTrace();
-        } finally {
-            if (ois != null) {
-                try {
+        } finally
+        {
+            if (ois != null)
+            {
+                try
+                {
                     ois.close();
-                } catch (IOException e) {
+                } catch (IOException e)
+                {
                     e.printStackTrace();
                 }
             }
-            if (fis != null) {
-                try {
+            if (fis != null)
+            {
+                try
+                {
                     fis.close();
-                } catch (IOException e) {
+                } catch (IOException e)
+                {
                     e.printStackTrace();
                 }
             }
@@ -80,8 +101,10 @@ public class FeederRecorder {
         foodList = foods;
     }
 
-    public void addFoodToList(Food newFood){
-        if (!foodList.contains(newFood)) {
+    public void addFoodToList(Food newFood)
+    {
+        if (!foodList.contains(newFood))
+        {
             foodList.add(newFood);
         }
     }

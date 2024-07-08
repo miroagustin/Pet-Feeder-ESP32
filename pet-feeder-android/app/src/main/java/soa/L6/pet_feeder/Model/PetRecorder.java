@@ -6,36 +6,48 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PetRecorder {
+public class PetRecorder
+{
 
     private List<Pet> petList;
     private String filename;
-    public PetRecorder(String filename){
+    public PetRecorder(String filename)
+    {
         petList = new ArrayList<>();
         this.filename = filename;
     }
 
-    public void savePetsToFile(Context context) {
+    public void savePetsToFile(Context context)
+    {
         FileOutputStream fos = null;
         ObjectOutputStream oos = null;
-        try {
+        try
+        {
             fos = context.openFileOutput(filename, Context.MODE_PRIVATE);
             oos = new ObjectOutputStream(fos);
             oos.writeObject(petList);
-        } catch (IOException e) {
+        } catch (IOException e)
+        {
             e.printStackTrace();
-        } finally {
-            if (oos != null) {
-                try {
+        } finally
+        {
+            if (oos != null)
+            {
+                try
+                {
                     oos.close();
-                } catch (IOException e) {
+                } catch (IOException e)
+                {
                     e.printStackTrace();
                 }
             }
-            if (fos != null) {
-                try {
+            if (fos != null)
+            {
+                try
+                {
                     fos.close();
-                } catch (IOException e) {
+                } catch (IOException e)
+                {
                     e.printStackTrace();
                 }
             }
@@ -43,30 +55,41 @@ public class PetRecorder {
     }
 
     // Método para cargar una lista de Pet desde un archivo
-    public void loadPetsFromFile(Context context) {
+    public void loadPetsFromFile(Context context)
+    {
         FileInputStream fis = null;
         ObjectInputStream ois = null;
         List<Pet> pets = new ArrayList<>();
-        try {
+        try
+        {
             fis = context.openFileInput(filename);
             ois = new ObjectInputStream(fis);
             pets = (List<Pet>) ois.readObject();
-        } catch (FileNotFoundException e) {
+        } catch (FileNotFoundException e)
+        {
             e.printStackTrace();
-        } catch (IOException | ClassNotFoundException e) {
+        } catch (IOException | ClassNotFoundException e)
+        {
             e.printStackTrace();
-        } finally {
-            if (ois != null) {
-                try {
+        } finally
+        {
+            if (ois != null)
+            {
+                try
+                {
                     ois.close();
-                } catch (IOException e) {
+                } catch (IOException e)
+                {
                     e.printStackTrace();
                 }
             }
-            if (fis != null) {
-                try {
+            if (fis != null)
+            {
+                try
+                {
                     fis.close();
-                } catch (IOException e) {
+                } catch (IOException e)
+                {
                     e.printStackTrace();
                 }
             }
@@ -74,8 +97,10 @@ public class PetRecorder {
         petList = pets;
     }
 
-    public void addPetToList(Pet newPet){
-        if (!petList.contains(newPet)) {
+    public void addPetToList(Pet newPet)
+    {
+        if (!petList.contains(newPet))
+        {
             petList.add(newPet);
         }
     }

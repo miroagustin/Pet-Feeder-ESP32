@@ -1,13 +1,15 @@
 package soa.L6.pet_feeder.Model;
 
-public class EstadoEmbebido {
+public class EstadoEmbebido
+{
     private float distancia;
     private int peso;
     private String estadoAnterior;
     private String evento;
     private String estadoActual;
 
-    public EstadoEmbebido(float distancia, int peso, String estadoAnterior, String evento, String estadoActual) {
+    public EstadoEmbebido(float distancia, int peso, String estadoAnterior, String evento, String estadoActual)
+    {
         this.distancia = distancia;
         this.peso = peso;
         this.estadoAnterior = estadoAnterior;
@@ -56,7 +58,8 @@ public class EstadoEmbebido {
     }
 
     @Override
-    public String toString() {
+    public String toString()
+    {
         return "EstadoEmbebido{" +
                 "distancia=" + distancia +
                 ", peso=" + peso +
@@ -66,9 +69,11 @@ public class EstadoEmbebido {
                 '}';
     }
 
-    public static EstadoEmbebido fromString(String data) {
+    public static EstadoEmbebido fromString(String data)
+    {
         String[] parts = data.split(";");
-        if (parts.length != 5) {
+        if (parts.length != 5)
+        {
             throw new IllegalArgumentException("Invalid data format");
         }
         float distancia = Float.parseFloat(parts[0]);

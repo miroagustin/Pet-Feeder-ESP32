@@ -29,7 +29,8 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 
-public class MQTTManager {
+public class MQTTManager
+{
 
     private static final String CERTIFICATE_STRING = "-----BEGIN CERTIFICATE-----\n"
             + "MIIDrzCCApegAwIBAgIQCDvgVpBCRrGhdWrJWZHHSjANBgkqhkiG9w0BAQUFADBh\n"
@@ -59,21 +60,25 @@ public class MQTTManager {
     private Context context;
     private final String clientId = MqttClient.generateClientId();
 
-    public MQTTManager(Context context, MqttCallback callback) {
+    public MQTTManager(Context context, MqttCallback callback)
+    {
         this.context = context;
         mqttAndroidClient = new MqttAndroidClient(context, PetFeederConstants.MQTT_SERVER_URI, clientId, Ack.AUTO_ACK);
         Log.d(TAG, "Internet conectado? " + isInternetConnected(context));
         mqttAndroidClient.setCallback(callback);
     }
-    public boolean isInternetConnected(Context context) {
+    public boolean isInternetConnected(Context context)
+    {
         ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         Network nw = connectivityManager.getActiveNetwork();
         if (nw == null) return false;
         NetworkCapabilities actNw = connectivityManager.getNetworkCapabilities(nw);
         return actNw != null && (actNw.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || actNw.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) || actNw.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) || actNw.hasTransport(NetworkCapabilities.TRANSPORT_BLUETOOTH));
     }
-    public void connect() {
-        try {
+    public void connect()
+    {
+        try
+        {
 
             MqttConnectOptions options = new MqttConnectOptions();
             options.setUserName(PetFeederConstants.USER_NAME_MQTT);
@@ -82,9 +87,11 @@ public class MQTTManager {
 
             IMqttToken token = mqttAndroidClient.connect(options);
             Log.d(TAG, "Conectando...");
-            token.setActionCallback(new IMqttActionListener() {
+            token.setActionCallback(new IMqttActionListener()
+            {
                 @Override
-                public void onSuccess(IMqttToken asyncActionToken) {
+                public void onSuccess(IMqttToken asyncActionToken)
+                {
                     Log.d(TAG, "Conectado exitosamente");
                     subscribeToTopic(PetFeederConstants.SUB_TOPIC_ESTADOS);
                     subscribeToTopic(PetFeederConstants.SUB_TOPIC_ESTADISTICA);
@@ -92,62 +99,79 @@ public class MQTTManager {
                 }
 
                 @Override
-                public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
+                public void onFailure(IMqttToken asyncActionToken, Throwable exception)
+                {
                     Log.d(TAG, "Fallo al conectar: " + exception.toString());
                     showToast("Fallo al conectar: " + exception.getMessage());
                 }
             });
-        } catch (Exception e) {
+        } catch (Exception e)
+        {
             Log.e(TAG, "Error al conectar a MQTT: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
-    private void subscribeToTopic(String topic) {
-        try {
+    private void subscribeToTopic(String topic)
+    {
+        try
+        {
             mqttAndroidClient.subscribe(topic, 0);
-        } catch (Exception e) {
+        } catch (Exception e)
+        {
             e.printStackTrace();
         }
     }
 
-    public void publishMessage(String topic, String payload) {
-        try {
-            if (mqttAndroidClient != null && mqttAndroidClient.isConnected()) {
+    public void publishMessage(String topic, String payload)
+    {
+        try
+        {
+            if (mqttAndroidClient != null && mqttAndroidClient.isConnected())
+            {
                 MqttMessage message = new MqttMessage();
                 message.setPayload(payload.getBytes());
                 mqttAndroidClient.publish(topic, message);
-            } else {
+            } else
+            {
                 Log.d(TAG, "Cliente no conectado");
             }
-        } catch (Exception e) {
+        } catch (Exception e)
+        {
             e.printStackTrace();
         }
     }
 
-    public boolean isConnected() {
+    public boolean isConnected()
+    {
         return mqttAndroidClient != null && mqttAndroidClient.isConnected();
     }
 
-    public void disconnect() {
+    public void disconnect()
+    {
         try {
             mqttAndroidClient.disconnect();
-        } catch (Exception e) {
+        } catch (Exception e)
+        {
             e.printStackTrace();
         }
     }
 
-    private SSLSocketFactory getSocketFactory() {
-        try {
+    private SSLSocketFactory getSocketFactory()
+    {
+        try
+        {
             // Load CAs from an InputStream
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
             InputStream caInput = new ByteArrayInputStream(CERTIFICATE_STRING.getBytes());
             Certificate ca;
 
-            try {
+            try
+            {
                 ca = cf.generateCertificate(caInput);
                 Log.d(TAG, "ca=" + ((java.security.cert.X509Certificate) ca).getSubjectDN());
-            } finally {
+            } finally
+            {
                 caInput.close();
             }
 
@@ -167,12 +191,15 @@ public class MQTTManager {
             context.init(null, tmf.getTrustManagers(), null);
 
             return context.getSocketFactory();
-        } catch (Exception e) {
+        } catch (Exception e)
+        {
             throw new RuntimeException(e);
         }
     }
-    private void showToast(String message) {
-        new Handler(Looper.getMainLooper()).post(() -> {
+    private void showToast(String message)
+    {
+        new Handler(Looper.getMainLooper()).post(() ->
+        {
             Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
         });
     }

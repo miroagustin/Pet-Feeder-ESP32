@@ -33,7 +33,8 @@ import soa.L6.pet_feeder.Utils.MQTTManager;
 import soa.L6.pet_feeder.Utils.PetFeederConstants;
 import soa.L6.pet_feeder.databinding.FragmentNotificationsBinding;
 
-public class NotificationsFragment extends Fragment {
+public class NotificationsFragment extends Fragment
+{
 
     private Button btn_sincro;
     private Button btn_delete;
@@ -44,7 +45,8 @@ public class NotificationsFragment extends Fragment {
     private FragmentNotificationsBinding binding;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
-                             ViewGroup container, Bundle savedInstanceState) {
+                             ViewGroup container, Bundle savedInstanceState)
+    {
         NotificationsViewModel notificationsViewModel =
                 new ViewModelProvider(this).get(NotificationsViewModel.class);
 
@@ -52,7 +54,8 @@ public class NotificationsFragment extends Fragment {
         View root = binding.getRoot();
 
         btn_sincro = root.findViewById(R.id.btn_sincro);
-        btn_sincro.setOnClickListener(new View.OnClickListener() {
+        btn_sincro.setOnClickListener(new View.OnClickListener()
+        {
             @Override
             public void onClick(View v) {
                 sinchronizeApp();
@@ -61,7 +64,8 @@ public class NotificationsFragment extends Fragment {
         });
 
         btn_delete = root.findViewById(R.id.btn_delete);
-        btn_delete.setOnClickListener(new View.OnClickListener() {
+        btn_delete.setOnClickListener(new View.OnClickListener()
+        {
             @Override
             public void onClick(View v) {
                 deleteAppData();
@@ -77,7 +81,8 @@ public class NotificationsFragment extends Fragment {
     }
 
     @Override
-    public void onDestroyView() {
+    public void onDestroyView()
+    {
         super.onDestroyView();
         binding = null;
     }
@@ -87,12 +92,14 @@ public class NotificationsFragment extends Fragment {
         LinearLayout containerLayout = binding.getRoot().findViewById(R.id.contenedor_linear);
         FeederRecorder feeder = mainActivity.feederState.getFeederRecorder();
 
-        for (Food food : feeder.getFoodList().stream().sorted(Comparator.comparing(Food::getHour)).collect(Collectors.toList())) {
+        for (Food food : feeder.getFoodList().stream().sorted(Comparator.comparing(Food::getHour)).collect(Collectors.toList()))
+        {
             addFoodToContainer(containerLayout, food);
         }
     }
 
-    public void deleteAppData(){
+    public void deleteAppData()
+    {
         MainActivity mainActivity = (MainActivity) getActivity();
         LinearLayout containerLayout = binding.getRoot().findViewById(R.id.contenedor_linear);
 
@@ -134,7 +141,8 @@ public class NotificationsFragment extends Fragment {
     private static final int PADDING_BOTTOM = 0;
     private static final int PADDING_PANEL = 16;
 
-    private void addFoodToContainer(ViewGroup container, Food food) {
+    private void addFoodToContainer(ViewGroup container, Food food)
+    {
         // Crear un contenedor para el Pet
         LinearLayout foodContainer = new LinearLayout(getContext());
 
@@ -167,27 +175,33 @@ public class NotificationsFragment extends Fragment {
         params.setMargins(0, 0, 0, 16);
         foodContainer.setLayoutParams(params);
     }
-    private LinearLayout findFoodContainer(ViewGroup container, Food food) {
-        for (int i = 0; i < container.getChildCount(); i++) {
+    private LinearLayout findFoodContainer(ViewGroup container, Food food)
+    {
+        for (int i = 0; i < container.getChildCount(); i++)
+        {
             View child = container.getChildAt(i);
-            if (child instanceof LinearLayout) {
+            if (child instanceof LinearLayout)
+            {
                 LinearLayout foodContainer = (LinearLayout) child;
                 TextView nameTextView = (TextView) foodContainer.getChildAt(0);
-                if (nameTextView.getText().toString().contains(food.getHour())) {
+                if (nameTextView.getText().toString().contains(food.getHour()))
+                {
                     return foodContainer;
                 }
             }
         }
         return null; // Si no se encuentra el contenedor
     }
-    private void removeFoodContainer(ViewGroup container, Food food) {
+    private void removeFoodContainer(ViewGroup container, Food food)
+    {
         LinearLayout foodContainer = findFoodContainer(container, food);
         if (foodContainer != null) {
             container.removeView(foodContainer);
         }
     }
 
-    private void DeleteFoodDialog(Food food) {
+    private void DeleteFoodDialog(Food food)
+    {
         LayoutInflater inflater = getLayoutInflater();
         View popupView = inflater.inflate(R.layout.popup_notifications_layout, null);
 
@@ -195,9 +209,11 @@ public class NotificationsFragment extends Fragment {
         AlertDialog.Builder builder = new AlertDialog.Builder(new ContextThemeWrapper(getContext(), R.style.CustomDialogTheme));
         builder.setView(popupView)
                 .setTitle("¿Eliminar horario " + food.getHour() + " ?")
-                .setPositiveButton("Aceptar", new DialogInterface.OnClickListener() {
+                .setPositiveButton("Aceptar", new DialogInterface.OnClickListener()
+                {
                     @Override
-                    public void onClick(DialogInterface dialog, int which) {
+                    public void onClick(DialogInterface dialog, int which)
+                    {
                         // Acción al hacer clic en "Aceptar"
                         //aca deberia estar el delete
                         mainActivity.feederState.getFeederRecorder().deleteFood(food);
@@ -207,7 +223,8 @@ public class NotificationsFragment extends Fragment {
 
                     }
                 })
-                .setNegativeButton("Cancelar", new DialogInterface.OnClickListener() {
+                .setNegativeButton("Cancelar", new DialogInterface.OnClickListener()
+                {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         // Acción al hacer clic en "Cancelar"
@@ -217,9 +234,11 @@ public class NotificationsFragment extends Fragment {
 
         // Mostrar el AlertDialog
         dialog = builder.create();
-        dialog.setOnShowListener(new DialogInterface.OnShowListener() {
+        dialog.setOnShowListener(new DialogInterface.OnShowListener()
+        {
             @Override
-            public void onShow(DialogInterface dialogInterface) {
+            public void onShow(DialogInterface dialogInterface)
+            {
                 // cambio color texto botones
                 int textColor = android.graphics.Color.argb(255, 0, 0, 0);
                 dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(textColor);

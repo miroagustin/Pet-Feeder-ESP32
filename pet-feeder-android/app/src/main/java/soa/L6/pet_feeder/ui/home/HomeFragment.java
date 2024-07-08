@@ -33,7 +33,8 @@ import soa.L6.pet_feeder.databinding.FragmentHomeBinding;
 import android.widget.Button;
 import android.widget.Toast;
 
-public class HomeFragment extends Fragment {
+public class HomeFragment extends Fragment
+{
 
     private static final String NO_DATA_TEXT = "-";
     private static final int NO_DATA_TIME = -1;
@@ -52,7 +53,8 @@ public class HomeFragment extends Fragment {
     private MQTTManager mqttManager;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
-                             ViewGroup container, Bundle savedInstanceState) {
+                             ViewGroup container, Bundle savedInstanceState)
+    {
         HomeViewModel homeViewModel =
                 new ViewModelProvider(this).get(HomeViewModel.class);
         mainActivity = (MainActivity) requireActivity();
@@ -84,7 +86,8 @@ public class HomeFragment extends Fragment {
         return root;
     }
 
-    private void feedNowDialog() {
+    private void feedNowDialog()
+    {
         LayoutInflater inflater = getLayoutInflater();
         View popupView = inflater.inflate(R.layout.popup_layout, null);
 
@@ -92,23 +95,28 @@ public class HomeFragment extends Fragment {
         AlertDialog.Builder builder = new AlertDialog.Builder(new ContextThemeWrapper(getContext(), R.style.CustomDialogTheme));
         builder.setView(popupView)
                 .setTitle("Alimentar Ahora")
-                .setPositiveButton("Aceptar", new DialogInterface.OnClickListener() {
+                .setPositiveButton("Aceptar", new DialogInterface.OnClickListener()
+                {
                     @Override
-                    public void onClick(DialogInterface dialog, int which) {
+                    public void onClick(DialogInterface dialog, int which)
+                    {
                         // Acción al hacer clic en "Aceptar"
                         EditText input = popupView.findViewById(R.id.popup_input);
                         String userInput = input.getText().toString();
 
-                        if (!userInput.isEmpty()) {
+                        if (!userInput.isEmpty())
+                        {
                             String message = "hh;" + userInput;
                             mqttManager.publishMessage(PetFeederConstants.PUB_TOPIC_HORA_COMIDA, message);
-                        } else {
+                        } else
+                        {
                             Toast.makeText(getContext(), "Por favor completa el campo de comida", Toast.LENGTH_SHORT).show();
                         }
 
                     }
                 })
-                .setNegativeButton("Cancelar", new DialogInterface.OnClickListener() {
+                .setNegativeButton("Cancelar", new DialogInterface.OnClickListener()
+                {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         // Acción al hacer clic en "Cancelar"
@@ -118,9 +126,11 @@ public class HomeFragment extends Fragment {
 
         // Mostrar el AlertDialog
         dialog = builder.create();
-        dialog.setOnShowListener(new DialogInterface.OnShowListener() {
+        dialog.setOnShowListener(new DialogInterface.OnShowListener()
+        {
             @Override
-            public void onShow(DialogInterface dialogInterface) {
+            public void onShow(DialogInterface dialogInterface)
+            {
                 EditText input = popupView.findViewById(R.id.popup_input);
                 input.requestFocus();
                 InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
@@ -133,32 +143,39 @@ public class HomeFragment extends Fragment {
 
     }
 
-    public void acceptDialog(){
-        if(dialog != null){
+    public void acceptDialog()
+    {
+        if(dialog != null)
+        {
             Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
             positiveButton.performClick();
         }
 
     }
 
-    private void showTimePickerDialog() {
-        TimePickerDialog timePickerDialog = new TimePickerDialog(getContext(), (view, hourOfDay, minute) -> {
+    private void showTimePickerDialog()
+    {
+        TimePickerDialog timePickerDialog = new TimePickerDialog(getContext(), (view, hourOfDay, minute) ->
+        {
             String time = String.format("%02d:%02d", hourOfDay, minute);
             input_time.setText(time);
         }, 0, 0, true);
         timePickerDialog.show();
     }
-    private void saveNewAlimentacion() {
+    private void saveNewAlimentacion()
+    {
         String time = input_time.getText().toString();
         String amount = input_amount.getText().toString();
         input_time.setText("");
         input_amount.setText("");
 
         MainActivity mainActivity = (MainActivity) getActivity();
-        if (time.isEmpty() || amount.isEmpty()) {
+        if (time.isEmpty() || amount.isEmpty())
+        {
             // Mostrar toast indicando que algún campo está vacío
             Toast.makeText(getContext(), "Por favor completa ambos campos", Toast.LENGTH_SHORT).show();
-        } else {
+        } else
+        {
             String message = time + ";" + amount;
             assert mainActivity != null;
 
@@ -183,33 +200,40 @@ public class HomeFragment extends Fragment {
     }
 
     @Override
-    public void onDestroyView() {
+    public void onDestroyView()
+    {
         super.onDestroyView();
         binding = null;
     }
 
     @Override
-    public void onResume() {
+    public void onResume()
+    {
         super.onResume();
         setHomeData(mainActivity.feederState);
     }
 
-    public void setHomeData(FeederState state){
+    public void setHomeData(FeederState state)
+    {
         Log.d(HomeFragment.class.getName(), "Feeder State Updateado: " + state);
 
         time_label.setText(state.getNextMealTime());
         amount_label.setText(String.format("%.2f",state.getFoodAmount()));
         // Handle refillNeeded
-        if (state.isRefillNeed()) {
+        if (state.isRefillNeed())
+        {
             refillLabel.setBackgroundResource(R.drawable.tag_informe);
-        } else {
+        } else
+        {
             refillLabel.setBackgroundResource(R.drawable.tag_informe_desactivado); // This removes the background drawable
         }
 
         // Handle clearNeeded
-        if (state.isClearNeed()) {
+        if (state.isClearNeed())
+        {
             clearNeedLabel.setBackgroundResource(R.drawable.tag_informe);
-        } else {
+        } else
+        {
             clearNeedLabel.setBackgroundResource(R.drawable.tag_informe_desactivado); // This removes the background drawable
         }
         // Debug logs to check the drawable change

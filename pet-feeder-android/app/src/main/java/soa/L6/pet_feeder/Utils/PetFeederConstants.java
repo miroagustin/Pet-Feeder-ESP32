@@ -1,6 +1,7 @@
 package soa.L6.pet_feeder.Utils;
 
-public class PetFeederConstants {
+public class PetFeederConstants
+{
     // Definir las constantes
     public static final String SUB_TOPIC_ESTADOS = "/pet-feeder/estado";
     public static final String SUB_TOPIC_ESTADISTICA = "/pet-feeder/estadistica";
